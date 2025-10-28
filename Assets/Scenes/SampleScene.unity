@@ -455,7 +455,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: a5f9ddd9a558fc440857e50f32a121af, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -510,9 +510,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 742032038}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 417d13ae338f135448dcf0106c385a83, type: 3}
+  m_Script: {fileID: 11500000, guid: 25debbe61cc0ace4c9f74d282e2b2abb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleSwitch
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -761,7 +761,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   testPrefab: {fileID: 0}
-  interactRange: 5
+  interactRange: 1.5
 --- !u!1 &1024022442
 GameObject:
   m_ObjectHideFlags: 0
@@ -828,7 +828,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 433c4a664cf0c914c9c48ca6563b4aaf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -883,9 +883,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1024022442}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 417d13ae338f135448dcf0106c385a83, type: 3}
+  m_Script: {fileID: 11500000, guid: 25debbe61cc0ace4c9f74d282e2b2abb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Interactable
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleSwitch
 --- !u!1 &1731784399
 GameObject:
   m_ObjectHideFlags: 0
@@ -952,7 +952,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 29d52b296fcbd5649b3b70fb41fb6ae5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
