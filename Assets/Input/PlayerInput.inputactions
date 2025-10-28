@@ -3,7 +3,7 @@
     "name": "PlayerInput",
     "maps": [
         {
-            "name": "PlayerActions",
+            "name": "Player",
             "id": "6f5b98a2-ad5c-46da-a17a-1bcbc46fe6fe",
             "actions": [
                 {
@@ -37,6 +37,15 @@
                     "name": "Sprint",
                     "type": "Button",
                     "id": "ed06f009-ac8b-43d8-91f1-44933d37674a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "b5464418-e07a-4e54-a6d2-c963ffba8a09",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -131,11 +140,22 @@
                     "action": "Sprint",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6f74be9c-2fa4-439b-a9c7-cd537eabd92d",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
         {
-            "name": "HabitatInteraction",
+            "name": "MenuInteraction",
             "id": "9ae02614-9c9c-4109-99df-c4867e78066a",
             "actions": [
                 {
