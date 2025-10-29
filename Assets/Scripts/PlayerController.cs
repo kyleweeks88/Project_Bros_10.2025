@@ -6,14 +6,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float walkSpeed = 3.0f;
     [SerializeField] private float sprintMultiplier = 2.0f;
     private Vector3 currentMovement;
+    private Vector3 inputDir;
     private float currentSpeed => walkSpeed * (playerInputHandler.SprintPressed ? sprintMultiplier : 1);
     public bool isMovementPressed;
 
     [Header("Jump Parameters")]
-    private float initialJumpVelocity;
     [SerializeField] private float maxJumpHeight = 1.0f;
     [SerializeField] private float maxJumpTime = 0.5f;
     [SerializeField] private bool isJumping;
+    private float initialJumpVelocity;
 
     [Header("Look Parameters")]
     [SerializeField] private float mouseSensitivity = 0.1f;
@@ -35,6 +36,8 @@ public class PlayerController : MonoBehaviour
     int isWalkingHash;
     int isRunningHash;
     int isJumpingHash;
+    int velocityXHash;
+    int velocityZHash;
     bool isJumpAnimating;
 
     private void Awake()
@@ -48,6 +51,8 @@ public class PlayerController : MonoBehaviour
         isWalkingHash = Animator.StringToHash("isWalking");
         isRunningHash = Animator.StringToHash("isRunning");
         isJumpingHash = Animator.StringToHash("isJumping");
+        velocityXHash = Animator.StringToHash("velocityX");
+        velocityZHash = Animator.StringToHash("velocityZ");
 
         SetupJumpVariables();
     }
@@ -69,9 +74,9 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 CalculateWorldDirection()
     {
-        Vector3 inputDir = new Vector3(playerInputHandler.MovementInput.x, 0f, playerInputHandler.MovementInput.y);
+        inputDir = new Vector3(playerInputHandler.MovementInput.x, 0f, playerInputHandler.MovementInput.y);
         Vector3 worldDirection = transform.TransformDirection(inputDir);
-        
+
         return worldDirection.normalized;
     }
 
@@ -93,7 +98,6 @@ public class PlayerController : MonoBehaviour
         }
         else if(!playerInputHandler.JumpPressed && isJumping && characterController.isGrounded)
         {
-            //animator.SetBool(isJumpingHash, false);
             isJumping = false;
         }
     }
@@ -152,7 +156,10 @@ public class PlayerController : MonoBehaviour
 
     private void HandleAnimation()
     {
-        bool isWalking = animator.GetBool(isWalkingHash);
+        animator.SetFloat(velocityZHash, inputDir.z * currentSpeed);
+        animator.SetFloat(velocityXHash, inputDir.x * currentSpeed);
+
+        /*bool isWalking = animator.GetBool(isWalkingHash);
         bool isRunning = animator.GetBool(isRunningHash);
 
         if(isMovementPressed && !isWalking)
@@ -171,6 +178,6 @@ public class PlayerController : MonoBehaviour
         else if((!isMovementPressed || !playerInputHandler.SprintPressed) && isRunning)
         {
             animator.SetBool(isRunningHash, false);
-        }
+        }*/
     }
 }
