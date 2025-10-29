@@ -4,10 +4,8 @@ public class PlayerInteraction : MonoBehaviour
 {
     // REFERENCES
     [SerializeField] private Camera playerCam;
-    public PlayerInputHandler playerInputHandler;
+    private PlayerInputHandler playerInputHandler;
 
-    [SerializeField] private LayerMask interactLayer;
-    [SerializeField] private GameObject testPrefab;
     [SerializeField] private float interactRange;
 
     private void OnEnable()
@@ -35,7 +33,7 @@ public class PlayerInteraction : MonoBehaviour
             if(collider.TryGetComponent(out Interactable _interactedObject))
             {
                 // SHOOT A RAY FROM PLAYER POV TO SEE IF ITS LOOKING AT THE INTERACTABLE
-                if(Physics.Raycast(playerCam.transform.position, playerCam.transform.forward, out RaycastHit hitInfo, 100f, interactLayer))
+                if(Physics.Raycast(playerCam.transform.position, playerCam.transform.forward, out RaycastHit hitInfo, 100f))
                 {
                     if (hitInfo.collider.gameObject == _interactedObject.gameObject)
                         _interactedObject.Interact(this);
