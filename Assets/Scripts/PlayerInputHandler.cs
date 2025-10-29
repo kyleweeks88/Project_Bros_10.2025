@@ -77,6 +77,5 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
         if (interactEvent != null &&
             context.phase == InputActionPhase.Performed)
             interactEvent.Invoke();
-        Debug.Log("TEST: Interact");
     }
 }
