@@ -3,12 +3,16 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Parameters")]
-    [SerializeField] private float walkSpeed = 3.0f;
+    [SerializeField] private float moveSpeed = 3.0f;
     [SerializeField] private float sprintMultiplier = 2.0f;
+    [SerializeField] private float crouchDeduction = 2.0f;
     private Vector3 currentMovement;
     private Vector3 inputDir;
-    private float currentSpeed => walkSpeed * (playerInputHandler.SprintPressed ? sprintMultiplier : 1);
+    //private float currentSpeed => moveSpeed * (playerInputHandler.SprintPressed ? sprintMultiplier : 1);
+    [SerializeField] private float currentSpeed;
     public bool isMovementPressed;
+    public bool isSprinting;
+    public bool isCrouching;
 
     [Header("Jump Parameters")]
     [SerializeField] private float maxJumpHeight = 1.0f;
@@ -27,14 +31,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float gravityMultiplier = 1.0f;
     [SerializeField] private float gravity = -9.8f;
 
-    // REFERENCES
+    // COMPONENT REFERENCES
     private Camera mainCamera;
     private CharacterController characterController;
     private PlayerInputHandler playerInputHandler;
-    [SerializeField] private Animator animator;
+    private Animator animator;
 
-    int isWalkingHash;
-    int isRunningHash;
+    // ANIMATOR REFERENCES
+    //int isWalkingHash;
+    //int isRunningHash;
     int isJumpingHash;
     int velocityXHash;
     int velocityZHash;
@@ -48,8 +53,8 @@ public class PlayerController : MonoBehaviour
         rigidBody = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
-        isWalkingHash = Animator.StringToHash("isWalking");
-        isRunningHash = Animator.StringToHash("isRunning");
+        //isWalkingHash = Animator.StringToHash("isWalking");
+        //isRunningHash = Animator.StringToHash("isRunning");
         isJumpingHash = Animator.StringToHash("isJumping");
         velocityXHash = Animator.StringToHash("velocityX");
         velocityZHash = Animator.StringToHash("velocityZ");
@@ -61,6 +66,8 @@ public class PlayerController : MonoBehaviour
     {
         rigidBody.isKinematic = true;
         physCollider.enabled = false;
+
+        currentSpeed = moveSpeed;
     }
 
     private void Update()
@@ -70,8 +77,32 @@ public class PlayerController : MonoBehaviour
         HandleAnimation();
         HandleGravity();
         HandleJumping();
+        HandleCrouching();
+        HandleSprinting();
     }
 
+    private void HandleGravity()
+    {
+        if (characterController.isGrounded)
+        {
+            if (isJumpAnimating)
+            {
+                animator.SetBool(isJumpingHash, false);
+                isJumpAnimating = false;
+            }
+
+            currentMovement.y = -0.5f;
+        }
+        else
+        {
+            float previousYVelocity = currentMovement.y;
+            float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
+            float nextYVelocity = (previousYVelocity + newYVelocity) * 0.5f;
+            currentMovement.y = nextYVelocity;
+        }
+    }
+
+    #region Movement
     private Vector3 CalculateWorldDirection()
     {
         inputDir = new Vector3(playerInputHandler.MovementInput.x, 0f, playerInputHandler.MovementInput.y);
@@ -80,6 +111,51 @@ public class PlayerController : MonoBehaviour
         return worldDirection.normalized;
     }
 
+    private void HandleMovement()
+    {
+        Vector3 worldDirection = CalculateWorldDirection();
+        currentMovement.x = worldDirection.x * currentSpeed;
+        currentMovement.z = worldDirection.z * currentSpeed;
+        isMovementPressed = currentMovement.x != 0 || currentMovement.z != 0;
+
+        //HandleSprinting();
+        //HandleCrouching();  
+        characterController.Move(currentMovement * Time.deltaTime);
+    }
+
+    private void HandleSprinting()
+    {
+        if (playerInputHandler.SprintPressed && !isSprinting)
+        {
+            isSprinting = true;
+            currentSpeed = moveSpeed * sprintMultiplier;
+        }
+        else if (!playerInputHandler.SprintPressed && isSprinting)
+        {
+            isSprinting = false;
+            currentSpeed = moveSpeed;
+        }
+    }
+
+    private void HandleCrouching()
+    {
+        // SPEED REDUCED
+        // TRIGGER A BOOL FOR ANIMATION
+        if (playerInputHandler.CrouchPressed && !isCrouching)
+        {
+            isCrouching = true;
+            currentSpeed = moveSpeed / crouchDeduction;
+        }
+        else if (!playerInputHandler.CrouchPressed && isCrouching)
+        {
+            isCrouching = false;
+            currentSpeed = moveSpeed;
+        }
+        // MAKE PLAYER DETECTION RADIUS SMALLER -- STILL NEED A DETECTION RADIUS
+    }
+    #endregion
+
+    #region Jumping
     void SetupJumpVariables()
     {
         float timeToApex = maxJumpTime / 2;
@@ -101,38 +177,9 @@ public class PlayerController : MonoBehaviour
             isJumping = false;
         }
     }
+    #endregion
 
-    private void HandleGravity()
-    {
-        if(characterController.isGrounded)
-        {
-            if (isJumpAnimating)
-            {
-                animator.SetBool(isJumpingHash, false);
-                isJumpAnimating = false;
-            }
-
-            currentMovement.y = -0.5f;
-        }
-        else
-        {
-            float previousYVelocity = currentMovement.y;
-            float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
-            float nextYVelocity = (previousYVelocity + newYVelocity) * 0.5f;
-            currentMovement.y = nextYVelocity;
-        }
-    }
-
-    private void HandleMovement()
-    {
-        Vector3 worldDirection = CalculateWorldDirection();
-        currentMovement.x = worldDirection.x * currentSpeed;
-        currentMovement.z = worldDirection.z * currentSpeed;
-        isMovementPressed = currentMovement.x != 0 || currentMovement.z != 0;
-
-        characterController.Move(currentMovement * Time.deltaTime);
-    }
-
+    #region Rotation 
     private void HandleRotation()
     {
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
@@ -153,31 +200,11 @@ public class PlayerController : MonoBehaviour
     {
         transform.Rotate(0, rotationAmount, 0);
     }
+    #endregion
 
     private void HandleAnimation()
     {
         animator.SetFloat(velocityZHash, inputDir.z * currentSpeed);
         animator.SetFloat(velocityXHash, inputDir.x * currentSpeed);
-
-        /*bool isWalking = animator.GetBool(isWalkingHash);
-        bool isRunning = animator.GetBool(isRunningHash);
-
-        if(isMovementPressed && !isWalking)
-        {
-            animator.SetBool(isWalkingHash, true);
-        }
-        else if(!isMovementPressed && isWalking)
-        {
-            animator.SetBool(isWalkingHash, false);
-        }
-
-        if((isMovementPressed && playerInputHandler.SprintPressed) && !isRunning)
-        {
-            animator.SetBool(isRunningHash, true);
-        }
-        else if((!isMovementPressed || !playerInputHandler.SprintPressed) && isRunning)
-        {
-            animator.SetBool(isRunningHash, false);
-        }*/
     }
 }

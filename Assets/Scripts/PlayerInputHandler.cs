@@ -8,6 +8,7 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
     public Vector2 RotationInput { get; private set; }
     public bool JumpPressed {get; private set;}
     public bool SprintPressed { get; private set; }
+    public bool CrouchPressed { get; private set; }
 
     #region Input Unity Action Events
     public event UnityAction interactEvent;
@@ -77,5 +78,11 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
         if (interactEvent != null &&
             context.phase == InputActionPhase.Performed)
             interactEvent.Invoke();
+    }
+
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+        playerInput.Player.Crouch.started += inputInfo => CrouchPressed = true;
+        playerInput.Player.Crouch.canceled += inputInfo => CrouchPressed = false;
     }
 }
