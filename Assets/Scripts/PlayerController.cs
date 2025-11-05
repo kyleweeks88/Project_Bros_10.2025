@@ -3,27 +3,28 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Parameters")]
-    [SerializeField] private float moveSpeed = 3.0f;
-    [SerializeField] private float sprintMultiplier = 2.0f;
-    [SerializeField] private float crouchDeduction = 2.0f;
     private Vector3 currentMovement;
     private Vector3 inputDir;
-    //private float currentSpeed => moveSpeed * (playerInputHandler.SprintPressed ? sprintMultiplier : 1);
-    [SerializeField] private float currentSpeed;
+    [SerializeField] float moveSpeed = 3.0f;
+    [SerializeField] float moveAcceleration = 6f;
+    [SerializeField] float sprintMultiplier = 2.0f;
+    [SerializeField] float crouchDeduction = 2.0f;
+    [SerializeField] float currentSpeed;
     public bool isMovementPressed;
     public bool isSprinting;
     public bool isCrouching;
+    public bool isGrounded;
 
     [Header("Jump Parameters")]
-    [SerializeField] private float maxJumpHeight = 1.0f;
-    [SerializeField] private float maxJumpTime = 0.5f;
-    [SerializeField] private bool isJumping;
-    private float initialJumpVelocity;
+    [SerializeField] float maxJumpHeight = 1.0f;
+    [SerializeField] float maxJumpTime = 0.5f;
+    [SerializeField] bool isJumping;
+    [SerializeField] float initialJumpVelocity;
 
     [Header("Look Parameters")]
-    [SerializeField] private float mouseSensitivity = 0.1f;
-    [SerializeField] private float upDownLookRange = 80f;
-    private float verticalRotation;
+    [SerializeField] float mouseSensitivity = 0.1f;
+    [SerializeField] float upDownLookRange = 80f;
+    float verticalRotation;
 
     [Header("Physics Parameters")]
     [SerializeField] private CapsuleCollider physCollider;
@@ -59,7 +60,7 @@ public class PlayerController : MonoBehaviour
         velocityXHash = Animator.StringToHash("velocityX");
         velocityZHash = Animator.StringToHash("velocityZ");
 
-        SetupJumpVariables();
+        //SetupJumpVariables();
     }
 
     private void Start()
@@ -72,13 +73,17 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        HandleMovement();
+        isGrounded = characterController.isGrounded;
+        Debug.Log(currentMovement.y);
         HandleRotation();
         HandleAnimation();
         HandleGravity();
         HandleJumping();
         HandleCrouching();
         HandleSprinting();
+
+        TestMove();
+        //HandleMovement();
     }
 
     private void HandleGravity()
@@ -116,10 +121,31 @@ public class PlayerController : MonoBehaviour
         Vector3 worldDirection = CalculateWorldDirection();
         currentMovement.x = worldDirection.x * currentSpeed;
         currentMovement.z = worldDirection.z * currentSpeed;
-        isMovementPressed = currentMovement.x != 0 || currentMovement.z != 0;
 
-        //HandleSprinting();
-        //HandleCrouching();  
+        isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
+
+        HandleSprinting();
+        HandleCrouching();
+        characterController.Move(currentMovement * Time.deltaTime);
+    }
+
+    void TestMove()
+    {
+        Vector3 worldDirection = CalculateWorldDirection();
+        currentMovement.x = worldDirection.x * (currentSpeed + moveAcceleration * Time.deltaTime);
+        currentMovement.z = worldDirection.z * (currentSpeed + moveAcceleration * Time.deltaTime);
+
+        isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
+/*        if (!isMovementPressed)
+        {
+            currentSpeed -= moveAcceleration * Time.deltaTime;
+        }
+        else
+        {
+            currentSpeed += moveAcceleration * Time.deltaTime;
+        }*/
+
+        currentSpeed = Mathf.Clamp(currentSpeed, 0f, moveSpeed);
         characterController.Move(currentMovement * Time.deltaTime);
     }
 
@@ -151,7 +177,6 @@ public class PlayerController : MonoBehaviour
             isCrouching = false;
             currentSpeed = moveSpeed;
         }
-        // MAKE PLAYER DETECTION RADIUS SMALLER -- STILL NEED A DETECTION RADIUS
     }
     #endregion
 
@@ -171,6 +196,7 @@ public class PlayerController : MonoBehaviour
             isJumpAnimating = true;
             isJumping = true;
             currentMovement.y = initialJumpVelocity * 0.5f;
+            Debug.Log(currentMovement.y);
         }
         else if(!playerInputHandler.JumpPressed && isJumping && characterController.isGrounded)
         {
