@@ -2,7 +2,9 @@ using UnityEngine;
 
 public class StealthDetection : MonoBehaviour
 {
-    public float noiseRadius;
+    public float crouchNoiseRadius;
+    public float walkNoiseRadius;
+    public float sprintNoiseRadius;
     private float currentNoiseRadius;
 
     private PlayerController playerController;
@@ -14,7 +16,7 @@ public class StealthDetection : MonoBehaviour
 
     private void Start()
     {
-        currentNoiseRadius = 0f;
+        currentNoiseRadius = 0.5f;
     }
 
     void Update()
@@ -28,26 +30,41 @@ public class StealthDetection : MonoBehaviour
         {
             if (playerController.isCrouching)
             {
-                currentNoiseRadius = noiseRadius / 2f;
+                currentNoiseRadius = crouchNoiseRadius;
             }
             else if (playerController.isSprinting)
             {
-                currentNoiseRadius = noiseRadius * 2f;
+                currentNoiseRadius = sprintNoiseRadius;
             }
             else
             {
-                currentNoiseRadius = noiseRadius;
+                currentNoiseRadius = walkNoiseRadius;
             }
         }
         else
         {
-            currentNoiseRadius = 0f;
+            currentNoiseRadius = 0.5f;
         }
     }
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
+        if(currentNoiseRadius >= sprintNoiseRadius)
+        {
+            Gizmos.color = Color.red;
+        }
+        else if(currentNoiseRadius >= walkNoiseRadius)
+        {
+            Gizmos.color = Color.yellow;
+        }
+        else if(currentNoiseRadius >= crouchNoiseRadius)
+        {
+            Gizmos.color = Color.green;
+        }
+        else
+        {
+            Gizmos.color = Color.blue;
+        }
         Gizmos.DrawWireSphere(transform.position, currentNoiseRadius);
     }
 }

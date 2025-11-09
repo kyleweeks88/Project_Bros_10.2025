@@ -2,8 +2,11 @@ using UnityEngine;
 
 public class Interactable : MonoBehaviour
 {
-    public virtual void Interact(PlayerInteraction _interactor)
+    [SerializeField] protected GameObject interactor;
+
+    public virtual void Interact(GameObject _interactor)
     {
+        //interactor = _interactor;
         Debug.Log(_interactor.name + " interacted with " + gameObject.name);
     }
 }

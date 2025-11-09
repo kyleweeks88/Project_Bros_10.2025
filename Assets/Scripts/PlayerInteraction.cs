@@ -36,7 +36,7 @@ public class PlayerInteraction : MonoBehaviour
                 if(Physics.Raycast(playerCam.transform.position, playerCam.transform.forward, out RaycastHit hitInfo, 100f))
                 {
                     if (hitInfo.collider.gameObject == _interactedObject.gameObject)
-                        _interactedObject.Interact(this);
+                        _interactedObject.Interact(this.gameObject);
                 }
             }
         }

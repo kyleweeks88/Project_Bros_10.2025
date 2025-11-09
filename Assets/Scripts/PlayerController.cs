@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -10,16 +11,21 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float sprintMultiplier = 2.0f;
     [SerializeField] float crouchDeduction = 2.0f;
     [SerializeField] float currentSpeed;
+    [SerializeField] float targetSpeed;
+    public bool canMove = true;
     public bool isMovementPressed;
     public bool isSprinting;
     public bool isCrouching;
     public bool isGrounded;
+    public bool isClimbing;
 
     [Header("Jump Parameters")]
-    [SerializeField] float maxJumpHeight = 1.0f;
-    [SerializeField] float maxJumpTime = 0.5f;
-    [SerializeField] bool isJumping;
+    [SerializeField] float maxJumpHeight = 4.0f;
+    [SerializeField] float maxJumpTime = 0.75f;
     [SerializeField] float initialJumpVelocity;
+    [SerializeField] bool isJumping;
+    [SerializeField] bool isFalling;
+    public LayerMask ledgeMask;
 
     [Header("Look Parameters")]
     [SerializeField] float mouseSensitivity = 0.1f;
@@ -29,7 +35,6 @@ public class PlayerController : MonoBehaviour
     [Header("Physics Parameters")]
     [SerializeField] private CapsuleCollider physCollider;
     private Rigidbody rigidBody;
-    [SerializeField] private float gravityMultiplier = 1.0f;
     [SerializeField] private float gravity = -9.8f;
 
     // COMPONENT REFERENCES
@@ -39,9 +44,9 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
 
     // ANIMATOR REFERENCES
-    //int isWalkingHash;
-    //int isRunningHash;
+    int isClimbingHash;
     int isJumpingHash;
+    int isFallingHash;
     int velocityXHash;
     int velocityZHash;
     bool isJumpAnimating;
@@ -54,13 +59,13 @@ public class PlayerController : MonoBehaviour
         rigidBody = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
-        //isWalkingHash = Animator.StringToHash("isWalking");
-        //isRunningHash = Animator.StringToHash("isRunning");
+        isClimbingHash = Animator.StringToHash("isClimbing");
         isJumpingHash = Animator.StringToHash("isJumping");
+        isFallingHash = Animator.StringToHash("isFalling");
         velocityXHash = Animator.StringToHash("velocityX");
         velocityZHash = Animator.StringToHash("velocityZ");
 
-        //SetupJumpVariables();
+        SetupJumpVariables();
     }
 
     private void Start()
@@ -68,26 +73,27 @@ public class PlayerController : MonoBehaviour
         rigidBody.isKinematic = true;
         physCollider.enabled = false;
 
-        currentSpeed = moveSpeed;
+        targetSpeed = moveSpeed;
     }
 
     private void Update()
     {
-        isGrounded = characterController.isGrounded;
-        Debug.Log(currentMovement.y);
+        HandleMovement();
         HandleRotation();
-        HandleAnimation();
-        HandleGravity();
-        HandleJumping();
         HandleCrouching();
         HandleSprinting();
+        LedgeClimbing();
 
-        TestMove();
-        //HandleMovement();
+        HandleGravity();
+        HandleJumping();
+        HandleAnimation();
     }
 
     private void HandleGravity()
     {
+        isFalling = !characterController.isGrounded && currentMovement.y < -5f && !playerInputHandler.JumpPressed;
+        float fallMultiplier = 2f;
+
         if (characterController.isGrounded)
         {
             if (isJumpAnimating)
@@ -97,6 +103,13 @@ public class PlayerController : MonoBehaviour
             }
 
             currentMovement.y = -0.5f;
+        }
+        else if(isFalling)
+        {
+            float previousYVelocity = currentMovement.y;
+            float newYVelocity = currentMovement.y + (gravity * fallMultiplier * Time.deltaTime);
+            float nextYVelocity = Mathf.Max((previousYVelocity + newYVelocity) * 0.5f, -10f);
+            currentMovement.y = nextYVelocity;
         }
         else
         {
@@ -108,45 +121,70 @@ public class PlayerController : MonoBehaviour
     }
 
     #region Movement
-    private Vector3 CalculateWorldDirection()
+    /*private Vector3 CalculateWorldDirection()
     {
         inputDir = new Vector3(playerInputHandler.MovementInput.x, 0f, playerInputHandler.MovementInput.y);
         Vector3 worldDirection = transform.TransformDirection(inputDir);
 
         return worldDirection.normalized;
+    }*/
+
+    private Vector3 NewCalculateWorldDirection(Vector3 _newInputDir)
+    {
+        inputDir = _newInputDir;
+        //inputDir = new Vector3(playerInputHandler.MovementInput.x, playerInputHandler.MovementInput.y, 0f);
+        Vector3 worldDirection = transform.TransformDirection(inputDir);
+
+        return worldDirection.normalized;
     }
 
-    private void HandleMovement()
-    {
-        Vector3 worldDirection = CalculateWorldDirection();
-        currentMovement.x = worldDirection.x * currentSpeed;
-        currentMovement.z = worldDirection.z * currentSpeed;
-
-        isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
-
-        HandleSprinting();
-        HandleCrouching();
-        characterController.Move(currentMovement * Time.deltaTime);
-    }
-
-    void TestMove()
-    {
-        Vector3 worldDirection = CalculateWorldDirection();
-        currentMovement.x = worldDirection.x * (currentSpeed + moveAcceleration * Time.deltaTime);
-        currentMovement.z = worldDirection.z * (currentSpeed + moveAcceleration * Time.deltaTime);
-
-        isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
-/*        if (!isMovementPressed)
+    /*    private void HandleMovement()
         {
-            currentSpeed -= moveAcceleration * Time.deltaTime;
+            Vector3 worldDirection = CalculateWorldDirection();
+            currentMovement.x = worldDirection.x * currentSpeed;
+            currentMovement.z = worldDirection.z * currentSpeed;
+
+            isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
+
+            HandleSprinting();
+            HandleCrouching();
+            characterController.Move(currentMovement * Time.deltaTime);
+        }*/
+
+    void HandleMovement()
+    {
+        if (canMove)
+        {
+            isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
+            if (!isMovementPressed)
+            {
+                currentSpeed -= moveAcceleration * Time.deltaTime;
+            }
+            else
+            {
+                currentSpeed += moveAcceleration * Time.deltaTime;
+            }
+
+            if (isClimbing)
+            {
+                Vector3 worldDirection = NewCalculateWorldDirection(new Vector3(0, playerInputHandler.MovementInput.y, 0));
+                currentMovement.x = worldDirection.x;
+                currentMovement.y = worldDirection.y * currentSpeed * 2f;
+            }
+            else
+            {
+                Vector3 worldDirection = NewCalculateWorldDirection(new Vector3(playerInputHandler.MovementInput.x, 0, playerInputHandler.MovementInput.y));
+                currentMovement.x = worldDirection.x * currentSpeed;
+                currentMovement.z = worldDirection.z * currentSpeed;
+            }
+
+            currentSpeed = Mathf.Clamp(currentSpeed, 0.5f, targetSpeed);
+            characterController.Move(currentMovement * Time.deltaTime);
         }
         else
         {
-            currentSpeed += moveAcceleration * Time.deltaTime;
-        }*/
-
-        currentSpeed = Mathf.Clamp(currentSpeed, 0f, moveSpeed);
-        characterController.Move(currentMovement * Time.deltaTime);
+            return;
+        }
     }
 
     private void HandleSprinting()
@@ -154,12 +192,12 @@ public class PlayerController : MonoBehaviour
         if (playerInputHandler.SprintPressed && !isSprinting)
         {
             isSprinting = true;
-            currentSpeed = moveSpeed * sprintMultiplier;
+            targetSpeed = moveSpeed * sprintMultiplier;
         }
         else if (!playerInputHandler.SprintPressed && isSprinting)
         {
             isSprinting = false;
-            currentSpeed = moveSpeed;
+            targetSpeed = moveSpeed;
         }
     }
 
@@ -167,15 +205,35 @@ public class PlayerController : MonoBehaviour
     {
         // SPEED REDUCED
         // TRIGGER A BOOL FOR ANIMATION
+        // REDUCE COLLIDER HEIGHT
         if (playerInputHandler.CrouchPressed && !isCrouching)
         {
             isCrouching = true;
-            currentSpeed = moveSpeed / crouchDeduction;
+
+            mainCamera.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+            characterController.height = 1f;
+            characterController.center = new Vector3(0f, 0.5f, 0f);
+            targetSpeed = moveSpeed / crouchDeduction;
         }
         else if (!playerInputHandler.CrouchPressed && isCrouching)
         {
-            isCrouching = false;
-            currentSpeed = moveSpeed;
+            // CHECK FOR OVERHEAD OBJECTS WITH RAYCAST BEFORE STANDING BACK UP
+            Vector3 rayOrigin = characterController.transform.position + characterController.center + Vector3.up * (characterController.height / 2f);
+            Vector3 rayDirection = Vector3.up; // Or any other desired direction
+            if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 2f))
+            {
+                Debug.Log("BONK");
+                return;
+            }
+            else
+            {
+                isCrouching = false;
+
+                mainCamera.transform.localPosition = new Vector3(0f, 1.6f, 0f);
+                characterController.height = 2f;
+                characterController.center = new Vector3(0f, 1f, 0f);
+                targetSpeed = moveSpeed;
+            }
         }
     }
     #endregion
@@ -190,18 +248,64 @@ public class PlayerController : MonoBehaviour
 
     private void HandleJumping()
     {
-        if (characterController.isGrounded && !isJumping && playerInputHandler.JumpPressed)
+        if (!isJumping && characterController.isGrounded && playerInputHandler.JumpPressed)
         {
             animator.SetBool(isJumpingHash, true);
             isJumpAnimating = true;
             isJumping = true;
             currentMovement.y = initialJumpVelocity * 0.5f;
-            Debug.Log(currentMovement.y);
         }
         else if(!playerInputHandler.JumpPressed && isJumping && characterController.isGrounded)
         {
             isJumping = false;
         }
+    }
+
+    void LedgeClimbing()
+    {
+        Vector3 rayOrigin = characterController.transform.position + Vector3.up * (characterController.height / 2f);
+        Debug.DrawRay(rayOrigin, transform.forward, Color.red);
+
+        if(isJumping && inputDir.z != 0)
+        {
+            if(Physics.Raycast(rayOrigin, transform.forward, out RaycastHit firstHit, .5f, ledgeMask))
+            {
+                if(firstHit.collider.isTrigger)
+                {
+                    gravity = 0f;
+                    canMove = false;
+                    characterController.enabled = false;
+
+                    if(Physics.Raycast(firstHit.point + (transform.forward * characterController.radius * 2f) + (Vector3.up * 0.6f * characterController.height), Vector3.down, out RaycastHit secondHit, characterController.height))
+                        StartCoroutine(LerpVault(1, secondHit.point, 0.5f));
+                }
+            }
+        }
+    }
+
+    IEnumerator LerpVault(int _animDuration, Vector3 _targetPos, float _duration)
+    {
+        //vaultCoroutineStarted = true;
+        int counter = _animDuration;
+        while (counter > 0)
+        {
+            yield return new WaitForSeconds(1);
+            counter--;
+        }
+
+        float _time = 0f;
+        Vector3 _startPosition = transform.position;
+
+        while(_time < _duration)
+        {
+            transform.position = Vector3.Lerp(_startPosition, _targetPos, _time / _duration);
+            _time += Time.deltaTime;
+            yield return null;
+        }
+        transform.position = _targetPos;
+        gravity = -48f;
+        canMove = true;
+        characterController.enabled = true;
     }
     #endregion
 
@@ -211,8 +315,10 @@ public class PlayerController : MonoBehaviour
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
         float mouseYRot = playerInputHandler.RotationInput.y * mouseSensitivity;
 
-        ApplyHorizontalRotation(mouseXRot);
         ApplyVerticalRotation(mouseYRot);
+
+        if (!isClimbing)
+            ApplyHorizontalRotation(mouseXRot);
     }
 
     private void ApplyVerticalRotation(float rotationAmount)
@@ -232,5 +338,7 @@ public class PlayerController : MonoBehaviour
     {
         animator.SetFloat(velocityZHash, inputDir.z * currentSpeed);
         animator.SetFloat(velocityXHash, inputDir.x * currentSpeed);
+        animator.SetBool(isFallingHash, isFalling);
+        animator.SetBool(isClimbingHash, isClimbing);
     }
 }

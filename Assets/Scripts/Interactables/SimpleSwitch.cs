@@ -13,7 +13,7 @@ public class SimpleSwitch : Interactable
         myRend.material.color = colorStart;
     }
 
-    public override void Interact(PlayerInteraction _interactor)
+    public override void Interact(GameObject _interactor)
     {
         SwitchColor();
     }

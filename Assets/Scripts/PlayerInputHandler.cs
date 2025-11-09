@@ -10,6 +10,8 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
     public bool SprintPressed { get; private set; }
     public bool CrouchPressed { get; private set; }
 
+
+
     #region Input Unity Action Events
     public event UnityAction interactEvent;
     #endregion
