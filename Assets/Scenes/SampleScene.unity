@@ -1105,11 +1105,10 @@ GameObject:
   - component: {fileID: 893905444}
   - component: {fileID: 893905446}
   - component: {fileID: 893905447}
-  - component: {fileID: 893905449}
   - component: {fileID: 893905442}
-  - component: {fileID: 893905443}
   - component: {fileID: 893905445}
   - component: {fileID: 893905448}
+  - component: {fileID: 893905449}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -1126,7 +1125,7 @@ Transform:
   m_GameObject: {fileID: 893905440}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.6621383, z: -0, w: 0.7493818}
-  m_LocalPosition: {x: -10.6, y: 0, z: 10.36}
+  m_LocalPosition: {x: -13.587, y: 0, z: 10.159}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1146,42 +1145,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00ce4b376f55f6448ff002dbae5fa67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputHandler
---- !u!114 &893905443
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 893905440}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e89b03eed7533d428bfec32eb914737, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 3
-  moveAcceleration: 6
-  sprintMultiplier: 2
-  crouchDeduction: 2
-  currentSpeed: 0
-  targetSpeed: 0
-  canMove: 1
-  isMovementPressed: 0
-  isSprinting: 0
-  isCrouching: 0
-  isGrounded: 0
-  isClimbing: 0
-  maxJumpHeight: 1.5
-  maxJumpTime: 0.5
-  initialJumpVelocity: 0
-  isJumping: 0
-  isFalling: 0
-  ledgeMask:
-    serializedVersion: 2
-    m_Bits: 64
-  mouseSensitivity: 0.1
-  upDownLookRange: 80
-  physCollider: {fileID: 893905447}
-  gravity: -9.8
 --- !u!143 &893905444
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1278,7 +1241,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 893905440}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91b766b7320f6444298ae36cec313044, type: 3}
   m_Name: 
@@ -1298,6 +1261,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df73a6ec49495e745b51e5da2d34cf80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStateMachine
+  moveSpeed: 3
+  moveAcceleration: 6
+  sprintMultiplier: 2
+  crouchDeduction: 2
+  currentSpeed: 0
+  targetSpeed: 0
+  canMove: 1
+  isMovementPressed: 0
+  isSprinting: 0
+  isCrouching: 0
+  isClimbing: 0
+  maxJumpHeight: 2
+  maxJumpTime: 0.75
+  initialJumpVelocity: 0
+  isJumping: 0
+  isFalling: 0
+  ledgeMask:
+    serializedVersion: 2
+    m_Bits: 64
+  mouseSensitivity: 0.1
+  upDownLookRange: 80
+  physCollider: {fileID: 893905447}
+  gravity: -9.8
 --- !u!1001 &951665376
 PrefabInstance:
   m_ObjectHideFlags: 0
