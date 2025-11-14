@@ -3,7 +3,7 @@ using System.Collections;
 
 public class Ladder : Interactable
 {
-    PlayerController playerController;
+    PlayerStateMachine playerStateMachine;
     CharacterController characterController;
     public Transform topLoc;
     public Transform bottomLoc;
@@ -27,10 +27,10 @@ public class Ladder : Interactable
             {
                 if (!exitCoroutineStarted)
                 {
-                    playerController.enabled = false;
+                    playerStateMachine.enabled = false;
                     characterController.enabled = false;
-                    playerController.transform.position = new Vector3(ledgeLoc.position.x, ledgeLoc.position.y, ledgeLoc.position.z);
-                    playerController.transform.rotation = new Quaternion(ledgeLoc.rotation.x, ledgeLoc.rotation.y, ledgeLoc.rotation.z, 0);
+                    playerStateMachine.transform.position = new Vector3(ledgeLoc.position.x, ledgeLoc.position.y, ledgeLoc.position.z);
+                    playerStateMachine.transform.rotation = new Quaternion(ledgeLoc.rotation.x, ledgeLoc.rotation.y, ledgeLoc.rotation.z, 0);
                     StartCoroutine(ExitCountdownTimer(1));
                 }
             }
@@ -39,10 +39,10 @@ public class Ladder : Interactable
             {
                 if (!exitCoroutineStarted)
                 {
-                    playerController.enabled = false;
+                    playerStateMachine.enabled = false;
                     characterController.enabled = false;
-                    playerController.transform.position = new Vector3(bottomLoc.position.x, bottomLoc.position.y, bottomLoc.position.z);
-                    playerController.transform.rotation = new Quaternion(bottomLoc.rotation.x, bottomLoc.rotation.y, bottomLoc.rotation.z, 0);
+                    playerStateMachine.transform.position = new Vector3(bottomLoc.position.x, bottomLoc.position.y, bottomLoc.position.z);
+                    playerStateMachine.transform.rotation = new Quaternion(bottomLoc.rotation.x, bottomLoc.rotation.y, bottomLoc.rotation.z, 0);
                     StartCoroutine(ExitCountdownTimer(1));
                 }
             }
@@ -55,27 +55,27 @@ public class Ladder : Interactable
 
     public override void Interact(GameObject _interactor)
     {
-        if (playerController == null)
+        if (playerStateMachine == null)
         {
             interactor = _interactor;
-            playerController = _interactor.GetComponent<PlayerController>();
+            playerStateMachine = _interactor.GetComponent<PlayerStateMachine>();
             characterController = _interactor.GetComponent<CharacterController>();
             // DISABLE PLAYER MOVEMENT WHILE TRANSITIONING TO LADDER
-            playerController.enabled = false;
+            playerStateMachine.enabled = false;
             characterController.enabled = false;
             // DETERMINE PLAYER TOP OR BOTTOM
             atBottomOfLadder = _interactor.transform.position.y < topLoc.position.y;
             if (atBottomOfLadder)
             {
                 Debug.Log("Entered Bottom");
-                playerController.transform.position = new Vector3(bottomLoc.position.x, bottomLoc.position.y, bottomLoc.position.z);
-                playerController.transform.rotation = new Quaternion(bottomLoc.rotation.x, bottomLoc.rotation.y, bottomLoc.rotation.z, 0);
+                playerStateMachine.transform.position = new Vector3(bottomLoc.position.x, bottomLoc.position.y, bottomLoc.position.z);
+                playerStateMachine.transform.rotation = new Quaternion(bottomLoc.rotation.x, bottomLoc.rotation.y, bottomLoc.rotation.z, 0);
             }
             else
             {
                 Debug.Log("Entered Top");
-                playerController.transform.position = new Vector3(topLoc.position.x, topLoc.position.y, topLoc.position.z);
-                playerController.transform.rotation = new Quaternion(topLoc.rotation.x, topLoc.rotation.y, topLoc.rotation.z, 0);
+                playerStateMachine.transform.position = new Vector3(topLoc.position.x, topLoc.position.y, topLoc.position.z);
+                playerStateMachine.transform.rotation = new Quaternion(topLoc.rotation.x, topLoc.rotation.y, topLoc.rotation.z, 0);
             }
             // play getting on ladder animation
             // wait til done and reenable the controller
@@ -117,19 +117,19 @@ public class Ladder : Interactable
     void EnterLadder()
     {
         StopCoroutine(EnterCountdownTimer(0));
-        playerController.enabled = true;
+        playerStateMachine.enabled = true;
         characterController.enabled = true;
-        playerController.isClimbing = true;
+        playerStateMachine.isClimbing = true;
         enterCoroutineStarted = false;
     }
 
     void ExitLadder()
     {
         StopCoroutine(ExitCountdownTimer(0));
-        playerController.enabled = true;
+        playerStateMachine.enabled = true;
         characterController.enabled = true;
-        playerController.isClimbing = false;
-        playerController = null;
+        playerStateMachine.isClimbing = false;
+        playerStateMachine = null;
         exitCoroutineStarted = false;
         interactor = null;
     }

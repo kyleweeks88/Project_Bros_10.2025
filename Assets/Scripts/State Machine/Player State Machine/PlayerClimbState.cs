@@ -1,34 +1,47 @@
 using UnityEngine;
 
+// ROOT STATE
 public class PlayerClimbState : PlayerBaseState
 {
-    public PlayerClimbState(PlayerStateMachine _currentContext, PlayerStateFactory _playerStateFactory)
-    : base(_currentContext, _playerStateFactory) { }
+    Vector3 climbDirection;
 
-    public override void CheckSwitchStates()
+    public PlayerClimbState(PlayerStateMachine _currentContext, PlayerStateFactory _playerStateFactory)
+    : base(_currentContext, _playerStateFactory) 
     {
-        throw new System.NotImplementedException();
+        bs_isRootState = true;
+        InitializeSubState();
     }
+
 
     public override void EnterState()
     {
-        //    Vector3 worldDirection = CalculateWorldDirection(new Vector3(0, playerInputHandler.MovementInput.y, 0));
-        //    currentMovement.x = worldDirection.x;
-        //    currentMovement.y = worldDirection.y * currentSpeed * 2f;
-    }
-
-    public override void ExitState()
-    {
-        throw new System.NotImplementedException();
+        climbDirection = bs_Ctx.CalculateWorldDirection(new Vector3(0, bs_Ctx.sm_PlayerInputHandler.MovementInput.y, 0));
     }
 
     public override void InitializeSubState()
     {
-        throw new System.NotImplementedException();
     }
 
     public override void UpdateState()
     {
-        throw new System.NotImplementedException();
+        bs_Ctx.sm_currentMovementX = climbDirection.x;
+        bs_Ctx.sm_currentMovementY = climbDirection.y * bs_Ctx.sm_moveSpeed;
+
+        CheckSwitchStates();
+
+        Debug.Log("TEST: CLIMB STATE");
+    }
+
+    public override void CheckSwitchStates()
+    {
+        if(!bs_Ctx.sm_isClimbing)
+        {
+            ExitState();
+            Debug.Log("TEST");
+        }
+    }
+
+    public override void ExitState()
+    {
     }
 }

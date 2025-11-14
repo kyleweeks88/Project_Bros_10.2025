@@ -42,6 +42,7 @@ public class PlayerStateMachine : MonoBehaviour
     private Animator animator;
 
     // ANIMATOR REFERENCES
+    int isWalkingHash;
     int isClimbingHash;
     int isJumpingHash;
     int isFallingHash;
@@ -52,20 +53,39 @@ public class PlayerStateMachine : MonoBehaviour
     PlayerBaseState currentState;
     PlayerStateFactory states;
 
-    #region Getters and Setters
-    // GETTERS AND SETTERS
+    #region GETTERS AND SETTERS
+    // GENERAL
     public PlayerBaseState CurrentState { get { return currentState; } set { currentState = value; } }
-    public PlayerInputHandler m_PlayerInputHandler { get { return playerInputHandler; } }
-    public Animator m_Animator { get { return animator; } }
-    public CharacterController m_characterController { get { return characterController; } }
+    public CharacterController sm_characterController { get { return characterController; } }
+    public PlayerInputHandler sm_PlayerInputHandler { get { return playerInputHandler; } }
+    public Camera sm_mainCamera { get { return mainCamera; } }
+    public float sm_gravity { get { return gravity; } }
+    public bool sm_isFalling { get { return isFalling; } set { isFalling = value; } }
+    // MOVEMENT
+    public bool sm_isMovementPressed { get { return isMovementPressed; } }
+    public float sm_currentMovementY { get { return currentMovement.y; } set { currentMovement.y = value; } }
+    public float sm_currentMovementX { get { return currentMovement.x; } set { currentMovement.x = value; } }
+    public float sm_moveSpeed { get { return moveSpeed; } }
+    public float sm_targetSpeed { set { targetSpeed = value; } }
+    // ANIMATION
+    public Animator sm_Animator { get { return animator; } }
+    public int sm_isWalkingHash { get { return isWalkingHash; } }
+    public int sm_isSprintingHash { get { return isWalkingHash; } }
+    public int sm_isFallingHash { get { return isFallingHash; } }
+    public int sm_isClimbingHash { get { return isClimbingHash; } }
     // JUMPING
-    public int m_isJumpingHash { get { return isJumpingHash; } }
-    public bool m_requireNewJumpPress { get { return requireNewJumpPress; } set { requireNewJumpPress = value; } }
-    public bool m_isJumping { set { isJumping = value; } }
-    public bool m_isFalling { get { return isFalling; } set { isFalling = value; } }
-    public float m_currentMovementY { get { return currentMovement.y; } set {  currentMovement.y = value; }}
-    public float m_initialJumpVelocity { get { return initialJumpVelocity; } set { initialJumpVelocity = value; } }
-    public float m_gravity { get { return gravity; } }
+    public float sm_initialJumpVelocity { get { return initialJumpVelocity; } set { initialJumpVelocity = value; } }
+    public int sm_isJumpingHash { get { return isJumpingHash; } }
+    public bool sm_requireNewJumpPress { get { return requireNewJumpPress; } set { requireNewJumpPress = value; } }
+    public bool sm_isJumping { set { isJumping = value; } }
+    // SPRINTING
+    public bool sm_isSprinting { set { isSprinting = value; } }
+    public float sm_sprintMultiplier { get { return sprintMultiplier; } }
+    // CROUCHING
+    public bool sm_isCrouching { set { isCrouching = value; } }
+    public float sm_crouchDeduction { get { return crouchDeduction; } }
+    // CLIMBING
+    public bool sm_isClimbing { get { return isClimbing; } }
     #endregion
 
 
@@ -77,10 +97,6 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void Awake()
     {
-        states = new PlayerStateFactory(this);
-        currentState = states.Grounded();
-        currentState.EnterState();
-
         playerInputHandler = GetComponent<PlayerInputHandler>();
         characterController = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
@@ -98,35 +114,27 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void Start()
     {
+        states = new PlayerStateFactory(this);
+        currentState = states.Grounded();
+        currentState.EnterState();
+
         rigidBody.isKinematic = true;
         physCollider.enabled = false;
 
         targetSpeed = moveSpeed;
     }
 
-
     private void Update()
     {
-        currentState.UpdateState();
+        currentState.UpdateStates();
 
         HandleMovement();
         HandleRotation();
         HandleGravity();
         HandleAnimation();
-        //Debug.Log("Test:" + currentMovement.y);
     }
 
-    void JumpPressed()
-    {
-        requireNewJumpPress = false;
-    }
-
-    void JumpReleased()
-    {
-        requireNewJumpPress = true;
-    }
-
-    private Vector3 CalculateWorldDirection(Vector3 _newInputDir)
+    public Vector3 CalculateWorldDirection(Vector3 _newInputDir)
     {
         inputDir = _newInputDir;
         Vector3 worldDirection = transform.TransformDirection(inputDir);
@@ -136,7 +144,7 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void HandleGravity()
     {
-        isFalling = !characterController.isGrounded && currentMovement.y <= -1.0f;
+        isFalling = !characterController.isGrounded && currentMovement.y <= -0.5f;
 
         float previousYVelocity = currentMovement.y;
         float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
@@ -144,7 +152,7 @@ public class PlayerStateMachine : MonoBehaviour
         currentMovement.y = nextYVelocity;
     }
 
-    #region Rotation
+    #region ROTATION
     private void HandleRotation()
     {
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
@@ -167,7 +175,7 @@ public class PlayerStateMachine : MonoBehaviour
     }
     #endregion
 
-    #region Movement
+    #region MOVEMENT
     void HandleMovement()
     {
         isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
@@ -180,15 +188,19 @@ public class PlayerStateMachine : MonoBehaviour
             currentSpeed += moveAcceleration * Time.deltaTime;
         }
 
-        Vector3 worldDirection = CalculateWorldDirection(new Vector3(playerInputHandler.MovementInput.x, 0, playerInputHandler.MovementInput.y));
-        currentMovement.x = worldDirection.x * currentSpeed;
-        currentMovement.z = worldDirection.z * currentSpeed;
+        if (!isClimbing)
+        {
+            Vector3 worldDirection = CalculateWorldDirection(new Vector3(playerInputHandler.MovementInput.x, 0, playerInputHandler.MovementInput.y));
+            currentMovement.x = worldDirection.x * currentSpeed;
+            currentMovement.z = worldDirection.z * currentSpeed;
+        }
 
         currentSpeed = Mathf.Clamp(currentSpeed, 0.5f, targetSpeed);
         characterController.Move(currentMovement * Time.deltaTime);
     }
     #endregion
 
+    #region JUMPING
     void SetupJumpVariables()
     {
         float timeToApex = maxJumpTime / 2;
@@ -196,12 +208,23 @@ public class PlayerStateMachine : MonoBehaviour
         initialJumpVelocity = (2 * maxJumpHeight) / timeToApex;
     }
 
+    void JumpPressed()
+    {
+        requireNewJumpPress = false;
+    }
+
+    void JumpReleased()
+    {
+        requireNewJumpPress = true;
+    }
+    #endregion
+
     private void HandleAnimation()
     {
         animator.SetFloat(velocityZHash, inputDir.z * currentSpeed);
         animator.SetFloat(velocityXHash, inputDir.x * currentSpeed);
-        animator.SetBool(isFallingHash, isFalling);
-        animator.SetBool(isClimbingHash, isClimbing);
+        //animator.SetBool(isFallingHash, isFalling);
+        //animator.SetBool(isClimbingHash, isClimbing);
     }
 }
 

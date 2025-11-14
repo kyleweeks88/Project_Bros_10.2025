@@ -1,21 +1,27 @@
 using UnityEngine;
 
+// bs_ IS GETTER/SETTER FROM THE BASE STATE AND PASSED TO THIS CONCRETE STATE
+// sm_ IS GETTER/SETTER FROM THE STATE MACHINE
 public class PlayerJumpState : PlayerBaseState
 {
     public PlayerJumpState(PlayerStateMachine _currentContext, PlayerStateFactory _playerStateFactory)
-    : base(_currentContext, _playerStateFactory) { }
+    : base(_currentContext, _playerStateFactory) 
+    {
+        bs_isRootState = true;
+        InitializeSubState();
+    }
 
     public override void CheckSwitchStates()
     {
-        if(ctx.m_characterController.isGrounded)
+        if(bs_Ctx.sm_characterController.isGrounded)
         {
-            SwitchState(factory.Grounded());
+            SwitchState(bs_Factory.Grounded());
         }
 
         // IF A PLAYER FALLS
-        if (ctx.m_isFalling)
+        if (bs_Ctx.sm_isFalling)
         {
-            SwitchState(factory.Fall());
+            SwitchState(bs_Factory.Fall());
         }
     }
 
@@ -27,10 +33,10 @@ public class PlayerJumpState : PlayerBaseState
 
     public override void ExitState()
     {
-        ctx.m_Animator.SetBool(ctx.m_isJumpingHash, false);
-        if(ctx.m_PlayerInputHandler.JumpPressed)
+        bs_Ctx.sm_Animator.SetBool(bs_Ctx.sm_isJumpingHash, false);
+        if(bs_Ctx.sm_PlayerInputHandler.JumpPressed)
         {
-            ctx.m_requireNewJumpPress = true;
+            bs_Ctx.sm_requireNewJumpPress = true;
         }
     }
 
@@ -47,9 +53,9 @@ public class PlayerJumpState : PlayerBaseState
 
     private void HandleJumping()
     {
-        ctx.m_Animator.SetBool(ctx.m_isJumpingHash, true);
-        ctx.m_isJumping = true;
-        ctx.m_currentMovementY = ctx.m_initialJumpVelocity * 0.5f;
+        bs_Ctx.sm_Animator.SetBool(bs_Ctx.sm_isJumpingHash, true);
+        bs_Ctx.sm_isJumping = true;
+        bs_Ctx.sm_currentMovementY = bs_Ctx.sm_initialJumpVelocity * 0.5f;
     }
 
     //private void HandleGravity()

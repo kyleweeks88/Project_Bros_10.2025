@@ -1,13 +1,18 @@
 using UnityEngine;
 
+// ROOT STATE
 public class PlayerFallingState : PlayerBaseState
 {
     public PlayerFallingState(PlayerStateMachine _currentContext, PlayerStateFactory _playerStateFactory)
-:   base(_currentContext, _playerStateFactory) { }
+:   base(_currentContext, _playerStateFactory) 
+    {
+        bs_isRootState = true;
+        InitializeSubState();
+    }
 
     public override void EnterState()
     {
-        
+        HandleAnimation(true);
     }
 
     public override void InitializeSubState()
@@ -16,27 +21,38 @@ public class PlayerFallingState : PlayerBaseState
 
     public override void UpdateState()
     {
-        float fallMultiplier = 2f;
-
-        float previousYVelocity = ctx.m_currentMovementY;
-        float newYVelocity = ctx.m_currentMovementY + (ctx.m_gravity * fallMultiplier * Time.deltaTime);
-        float nextYVelocity = Mathf.Max((previousYVelocity + newYVelocity) * 0.5f, -10f);
-        ctx.m_currentMovementY = nextYVelocity;
-        Debug.Log("TEST: FALLING STATE");
+        HandleFalling();
 
         CheckSwitchStates();
+
+        Debug.Log("TEST: FALLING STATE");
     }
 
     public override void CheckSwitchStates()
     {
-        if (ctx.m_characterController.isGrounded)
+        if (bs_Ctx.sm_characterController.isGrounded)
         {
-            SwitchState(factory.Grounded());
+            SwitchState(bs_Factory.Grounded());
         }
     }
 
     public override void ExitState()
     {
-        //ctx.m_currentMovementY = 0f;
+        HandleAnimation(false);
+    }
+
+    void HandleFalling()
+    {
+        float fallMultiplier = 2f;
+
+        float previousYVelocity = bs_Ctx.sm_currentMovementY;
+        float newYVelocity = bs_Ctx.sm_currentMovementY + (bs_Ctx.sm_gravity * fallMultiplier * Time.deltaTime);
+        float nextYVelocity = Mathf.Max((previousYVelocity + newYVelocity) * 0.5f, -10f);
+        bs_Ctx.sm_currentMovementY = nextYVelocity;
+    }
+
+    void HandleAnimation(bool _animBool)
+    {
+        bs_Ctx.sm_Animator.SetBool(bs_Ctx.sm_isFallingHash, _animBool);
     }
 }
