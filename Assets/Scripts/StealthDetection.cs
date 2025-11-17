@@ -7,11 +7,11 @@ public class StealthDetection : MonoBehaviour
     public float sprintNoiseRadius;
     private float currentNoiseRadius;
 
-    private PlayerController playerController;
+    private PlayerStateMachine playerStateMachine;
 
     void Awake()
     {
-        playerController = GetComponent<PlayerController>();
+        playerStateMachine = GetComponent<PlayerStateMachine>();
     } 
 
     private void Start()
@@ -26,13 +26,15 @@ public class StealthDetection : MonoBehaviour
 
     void NoiseSource()
     {
-        if (playerController.isMovementPressed)
+        // SHOULD ALL THIS BE SET BY THE STATES IN THE STATE MACHINE
+        // INSTEAD OF CHECKING THE CONDITIONALS HERE???
+        if (playerStateMachine.isMovementPressed)
         {
-            if (playerController.isCrouching)
+            if (playerStateMachine.isCrouching)
             {
                 currentNoiseRadius = crouchNoiseRadius;
             }
-            else if (playerController.isSprinting)
+            else if (playerStateMachine.isSprinting)
             {
                 currentNoiseRadius = sprintNoiseRadius;
             }

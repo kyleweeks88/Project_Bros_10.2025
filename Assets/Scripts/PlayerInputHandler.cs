@@ -14,6 +14,8 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
 
     #region Input Unity Action Events
     public event UnityAction interactEvent;
+    public event UnityAction jumpEventStarted;
+    public event UnityAction jumpEventCancelled;
     #endregion
 
     // Input Asset Singleton
@@ -51,6 +53,14 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
     {
         playerInput.Player.Jump.performed += inputInfo => JumpPressed = true;
         playerInput.Player.Jump.canceled += inputInfo => JumpPressed = false;
+
+        if (jumpEventStarted != null &&
+            context.phase == InputActionPhase.Started)
+            jumpEventStarted.Invoke();
+
+        if (jumpEventCancelled != null &&
+            context.phase == InputActionPhase.Canceled)
+            jumpEventCancelled.Invoke();
     }
 
     public void OnMovement(InputAction.CallbackContext context)
