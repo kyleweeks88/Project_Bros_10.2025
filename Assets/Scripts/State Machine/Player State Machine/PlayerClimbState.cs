@@ -15,7 +15,7 @@ public class PlayerClimbState : PlayerBaseState
 
     public override void EnterState()
     {
-        climbDirection = bs_Ctx.CalculateWorldDirection(new Vector3(0, bs_Ctx.sm_PlayerInputHandler.MovementInput.y, 0));
+        //climbDirection = bs_Ctx.CalculateWorldDirection(new Vector3(0, bs_Ctx.sm_PlayerInputHandler.MovementInput.y, 0));
     }
 
     public override void InitializeSubState()
@@ -24,8 +24,9 @@ public class PlayerClimbState : PlayerBaseState
 
     public override void UpdateState()
     {
-        bs_Ctx.sm_currentMovementX = climbDirection.x;
-        bs_Ctx.sm_currentMovementY = climbDirection.y * bs_Ctx.sm_moveSpeed;
+        Vector3 climb = bs_Ctx.CalculateWorldDirection(new Vector3(0, bs_Ctx.sm_PlayerInputHandler.MovementInput.y, 0));
+        bs_Ctx.sm_currentMovementX = climb.x;
+        bs_Ctx.sm_currentMovementY = climb.y * bs_Ctx.sm_moveSpeed;
 
         CheckSwitchStates();
 
@@ -36,8 +37,14 @@ public class PlayerClimbState : PlayerBaseState
     {
         if(!bs_Ctx.sm_isClimbing)
         {
-            ExitState();
-            Debug.Log("TEST");
+            if (bs_Ctx.sm_characterController.isGrounded)
+            {
+                SwitchState(bs_Factory.Grounded());
+            }
+            else if(!bs_Ctx.sm_characterController.isGrounded)
+            {
+                SwitchState(bs_Factory.Fall());
+            }
         }
     }
 

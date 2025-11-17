@@ -32,6 +32,7 @@ public class Ladder : Interactable
                     playerStateMachine.transform.position = new Vector3(ledgeLoc.position.x, ledgeLoc.position.y, ledgeLoc.position.z);
                     playerStateMachine.transform.rotation = new Quaternion(ledgeLoc.rotation.x, ledgeLoc.rotation.y, ledgeLoc.rotation.z, 0);
                     StartCoroutine(ExitCountdownTimer(1));
+                    Debug.Log("EXIT TOP");
                 }
             }
             // IF PLAYER ENTERED AT TOP AND HAS REACHED THE BOTTOM
@@ -44,6 +45,7 @@ public class Ladder : Interactable
                     playerStateMachine.transform.position = new Vector3(bottomLoc.position.x, bottomLoc.position.y, bottomLoc.position.z);
                     playerStateMachine.transform.rotation = new Quaternion(bottomLoc.rotation.x, bottomLoc.rotation.y, bottomLoc.rotation.z, 0);
                     StartCoroutine(ExitCountdownTimer(1));
+                    Debug.Log("EXIT BOTTOM");
                 }
             }
         }
@@ -132,5 +134,7 @@ public class Ladder : Interactable
         playerStateMachine = null;
         exitCoroutineStarted = false;
         interactor = null;
+
+        Debug.Log("EXIT");
     }
 }

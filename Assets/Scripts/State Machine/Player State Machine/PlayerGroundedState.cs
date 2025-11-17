@@ -44,7 +44,17 @@ public class PlayerGroundedState : PlayerBaseState
 
     public override void UpdateState()
     {
-        bs_Ctx.sm_currentMovementY = -0.5f;
+        if (bs_Ctx.sm_groundedFailSafe
+            && !bs_Ctx.sm_characterController.isGrounded)
+        {
+            bs_Ctx.sm_currentMovementY = -100f;
+        }
+        else if (bs_Ctx.sm_groundedFailSafe
+            && bs_Ctx.sm_characterController.isGrounded)
+        {
+            bs_Ctx.sm_currentMovementY = -0.5f;
+        }
+
         CheckSwitchStates();
 
         Debug.Log("GROUNDED STATE");

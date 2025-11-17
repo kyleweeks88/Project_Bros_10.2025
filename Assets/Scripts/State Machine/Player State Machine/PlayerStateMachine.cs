@@ -2,6 +2,16 @@ using UnityEngine;
 
 public class PlayerStateMachine : MonoBehaviour
 {
+    // STATE MACHINE REFERENCES
+    PlayerBaseState currentState;
+    PlayerStateFactory states;
+
+    // COMPONENT REFERENCES
+    private Camera mainCamera;
+    private CharacterController characterController;
+    private PlayerInputHandler playerInputHandler;
+    private Animator animator;
+
     [Header("Movement Parameters")]
     private Vector3 currentMovement;
     private Vector3 inputDir;
@@ -16,6 +26,7 @@ public class PlayerStateMachine : MonoBehaviour
     public bool isSprinting;
     public bool isCrouching;
     public bool isClimbing;
+    public bool groundedFailSafe;
 
     [Header("Jump Parameters")]
     [SerializeField] float maxJumpHeight = 4.0f;
@@ -24,6 +35,7 @@ public class PlayerStateMachine : MonoBehaviour
     [SerializeField] bool isJumping;
     [SerializeField] bool isFalling;
     public LayerMask ledgeMask;
+    bool requireNewJumpPress;
 
     [Header("Look Parameters")]
     [SerializeField] float mouseSensitivity = 0.1f;
@@ -35,12 +47,6 @@ public class PlayerStateMachine : MonoBehaviour
     private Rigidbody rigidBody;
     [SerializeField] private float gravity = -9.8f;
 
-    // COMPONENT REFERENCES
-    private Camera mainCamera;
-    private CharacterController characterController;
-    private PlayerInputHandler playerInputHandler;
-    private Animator animator;
-
     // ANIMATOR REFERENCES
     int isWalkingHash;
     int isClimbingHash;
@@ -48,10 +54,6 @@ public class PlayerStateMachine : MonoBehaviour
     int isFallingHash;
     int velocityXHash;
     int velocityZHash;
-    bool requireNewJumpPress;
-
-    PlayerBaseState currentState;
-    PlayerStateFactory states;
 
     #region GETTERS AND SETTERS
     // GENERAL
@@ -61,6 +63,7 @@ public class PlayerStateMachine : MonoBehaviour
     public Camera sm_mainCamera { get { return mainCamera; } }
     public float sm_gravity { get { return gravity; } }
     public bool sm_isFalling { get { return isFalling; } set { isFalling = value; } }
+    public bool sm_groundedFailSafe { get { return groundedFailSafe; } }
     // MOVEMENT
     public bool sm_isMovementPressed { get { return isMovementPressed; } }
     public float sm_currentMovementY { get { return currentMovement.y; } set { currentMovement.y = value; } }
@@ -114,6 +117,7 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void Start()
     {
+        // INITIALIZE THE STATEMACHINE FACTORY AND START STATE
         states = new PlayerStateFactory(this);
         currentState = states.Grounded();
         currentState.EnterState();
@@ -128,32 +132,14 @@ public class PlayerStateMachine : MonoBehaviour
     {
         currentState.UpdateStates();
 
-        HandleMovement();
-        HandleRotation();
-        HandleGravity();
-        HandleAnimation();
-    }
-
-    public Vector3 CalculateWorldDirection(Vector3 _newInputDir)
-    {
-        inputDir = _newInputDir;
-        Vector3 worldDirection = transform.TransformDirection(inputDir);
-
-        return worldDirection.normalized;
-    }
-
-    private void HandleGravity()
-    {
-        isFalling = !characterController.isGrounded && currentMovement.y <= -0.5f;
-
-        float previousYVelocity = currentMovement.y;
-        float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
-        float nextYVelocity = (previousYVelocity + newYVelocity) * 0.5f;
-        currentMovement.y = nextYVelocity;
+        Movement();
+        Rotation();
+        Gravity();
+        LocomotionAnimation();
     }
 
     #region ROTATION
-    private void HandleRotation()
+    private void Rotation()
     {
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
         float mouseYRot = playerInputHandler.RotationInput.y * mouseSensitivity;
@@ -176,7 +162,7 @@ public class PlayerStateMachine : MonoBehaviour
     #endregion
 
     #region MOVEMENT
-    void HandleMovement()
+    void Movement()
     {
         isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
         if (!isMovementPressed)
@@ -219,12 +205,56 @@ public class PlayerStateMachine : MonoBehaviour
     }
     #endregion
 
-    private void HandleAnimation()
+    #region GENERAL
+    public Vector3 CalculateWorldDirection(Vector3 _newInputDir)
+    {
+        inputDir = _newInputDir;
+        Vector3 worldDirection = transform.TransformDirection(inputDir);
+
+        return worldDirection.normalized;
+    }
+
+    private void Gravity()
+    {
+        GroundedFailSafe();
+        isFalling = !groundedFailSafe && currentMovement.y <= -0.5f;
+
+        float previousYVelocity = currentMovement.y;
+        float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
+        float nextYVelocity = (previousYVelocity + newYVelocity) * 0.5f;
+        currentMovement.y = nextYVelocity;
+    }
+
+    void GroundedFailSafe()
+    {
+        // CHECK FOR OVERHEAD OBJECTS WITH RAYCAST BEFORE STANDING BACK UP
+        Vector3 rayOrigin = characterController.transform.position;
+        Vector3 rayDirection = Vector3.down;
+        Debug.DrawRay(rayOrigin, rayDirection, Color.red);
+        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 1f))
+        {
+            if (!characterController.isGrounded)
+            {
+                Debug.Log("STILL GROUNDED");
+                groundedFailSafe = true;
+            }
+            else
+            {
+                Debug.Log("STILL GROUNDED");
+                groundedFailSafe = true;
+            }
+        }
+        else
+        {
+            Debug.Log("ACTUALLY NOT GROUNDED");
+            groundedFailSafe = false;
+        }
+    }
+
+    private void LocomotionAnimation()
     {
         animator.SetFloat(velocityZHash, inputDir.z * currentSpeed);
         animator.SetFloat(velocityXHash, inputDir.x * currentSpeed);
-        //animator.SetBool(isFallingHash, isFalling);
-        //animator.SetBool(isClimbingHash, isClimbing);
     }
+    #endregion
 }
-
