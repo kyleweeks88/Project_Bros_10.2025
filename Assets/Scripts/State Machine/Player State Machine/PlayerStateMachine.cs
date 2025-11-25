@@ -133,12 +133,30 @@ public class PlayerStateMachine : MonoBehaviour
         currentState.UpdateStates();
 
         Movement();
-        Rotation();
         Gravity();
         LocomotionAnimation();
     }
 
+    private void LateUpdate()
+    {
+        //Rotation();
+        ThirdPersonRotation();
+    }
+
     #region ROTATION
+    Vector2 camRot = Vector2.zero;
+    Vector2 playerRot = Vector2.zero;
+    void ThirdPersonRotation()
+    {
+        camRot.x += mouseSensitivity * playerInputHandler.RotationInput.x;
+        camRot.y = Mathf.Clamp(camRot.y - mouseSensitivity * playerInputHandler.RotationInput.y, -upDownLookRange, upDownLookRange);
+
+        playerRot.x += transform.eulerAngles.x + mouseSensitivity * playerInputHandler.RotationInput.x;
+        transform.rotation = Quaternion.Euler(0f, playerRot.x, 0f);
+
+        mainCamera.transform.rotation = Quaternion.Euler(camRot.y, camRot.x, 0f);
+    }
+
     private void Rotation()
     {
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
@@ -231,7 +249,7 @@ public class PlayerStateMachine : MonoBehaviour
         Vector3 rayOrigin = characterController.transform.position;
         Vector3 rayDirection = Vector3.down;
         Debug.DrawRay(rayOrigin, rayDirection, Color.red);
-        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 1f))
+        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 0.25f))
         {
             if (!characterController.isGrounded)
             {
