@@ -3,6 +3,7 @@ using UnityEngine;
 public class PlayerInteraction : MonoBehaviour
 {
     // REFERENCES
+    [SerializeField] private LayerMask interactMask;
     [SerializeField] private Camera playerCam;
     private PlayerInputHandler playerInputHandler;
 
@@ -33,7 +34,7 @@ public class PlayerInteraction : MonoBehaviour
             if(collider.TryGetComponent(out Interactable _interactedObject))
             {
                 // SHOOT A RAY FROM PLAYER POV TO SEE IF ITS LOOKING AT THE INTERACTABLE
-                if(Physics.Raycast(playerCam.transform.position, playerCam.transform.forward, out RaycastHit hitInfo, 100f))
+                if(Physics.Raycast(playerCam.transform.position, playerCam.transform.forward, out RaycastHit hitInfo, 100f, interactMask))
                 {
                     if (hitInfo.collider.gameObject == _interactedObject.gameObject)
                         _interactedObject.Interact(this.gameObject);
