@@ -112,7 +112,6 @@ public class PlayerStateMachine : MonoBehaviour
     {
         playerInputHandler = GetComponent<PlayerInputHandler>();
         characterController = GetComponent<CharacterController>();
-        //animator = GetComponentInChildren<Animator>();
         rigidBody = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
@@ -121,15 +120,15 @@ public class PlayerStateMachine : MonoBehaviour
         isFallingHash = Animator.StringToHash("isFalling");
         velocityXHash = Animator.StringToHash("velocityX");
         velocityZHash = Animator.StringToHash("velocityZ");
-        //fpViewHash = Animator.StringToHash("fpView");
         povTriggerHash = Animator.StringToHash("povTrigger");
 
         SetupJumpVariables();
-        Rotation();
     }
 
     private void Start()
     {
+        Rotation();
+
         // INITIALIZE THE STATEMACHINE FACTORY AND START STATE
         states = new PlayerStateFactory(this);
         currentState = states.Grounded();
@@ -243,16 +242,6 @@ public class PlayerStateMachine : MonoBehaviour
     private void ChangePerspective()
     {
         cameraStateAnimator.SetTrigger(povTriggerHash);
-        //firstPersonView = !firstPersonView;
-        //cameraStateAnimator.SetBool(fpViewHash, firstPersonView);
-        //if (cinemachineCam.Priority.Value < 1)
-        //{
-        //    cinemachineCam.Priority = 2;
-        //}
-        //else
-        //{
-        //    cinemachineCam.Priority = 0;
-        //}
     }
 
     public Vector3 CalculateWorldDirection(Vector3 _newInputDir)
