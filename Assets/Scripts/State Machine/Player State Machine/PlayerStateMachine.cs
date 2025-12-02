@@ -1,3 +1,5 @@
+using System.Collections;
+using Unity.Cinemachine;
 using UnityEngine;
 
 public class PlayerStateMachine : MonoBehaviour
@@ -8,9 +10,12 @@ public class PlayerStateMachine : MonoBehaviour
 
     // COMPONENT REFERENCES
     private Camera mainCamera;
+    [SerializeField] private CinemachineCamera cinemachineCam;
+    [SerializeField] private Transform dummyCam;
     private CharacterController characterController;
     private PlayerInputHandler playerInputHandler;
-    private Animator animator;
+    [SerializeField] Animator animator;
+    [SerializeField] Animator cameraStateAnimator;
 
     [Header("Movement Parameters")]
     private Vector3 currentMovement;
@@ -40,6 +45,7 @@ public class PlayerStateMachine : MonoBehaviour
     [Header("Look Parameters")]
     [SerializeField] float mouseSensitivity = 0.1f;
     [SerializeField] float upDownLookRange = 80f;
+    //[SerializeField] bool firstPersonView;
     float verticalRotation;
 
     [Header("Physics Parameters")]
@@ -54,6 +60,8 @@ public class PlayerStateMachine : MonoBehaviour
     int isFallingHash;
     int velocityXHash;
     int velocityZHash;
+    //int fpViewHash;
+    int povTriggerHash;
 
     #region GETTERS AND SETTERS
     // GENERAL
@@ -96,13 +104,14 @@ public class PlayerStateMachine : MonoBehaviour
     {
         playerInputHandler.jumpEventStarted += JumpPressed;
         playerInputHandler.jumpEventCancelled += JumpReleased;
+
+        playerInputHandler.perspectiveChangeEvent += ChangePerspective;
     }
 
     private void Awake()
     {
         playerInputHandler = GetComponent<PlayerInputHandler>();
         characterController = GetComponent<CharacterController>();
-        animator = GetComponentInChildren<Animator>();
         rigidBody = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
@@ -111,12 +120,15 @@ public class PlayerStateMachine : MonoBehaviour
         isFallingHash = Animator.StringToHash("isFalling");
         velocityXHash = Animator.StringToHash("velocityX");
         velocityZHash = Animator.StringToHash("velocityZ");
+        povTriggerHash = Animator.StringToHash("povTrigger");
 
         SetupJumpVariables();
     }
 
     private void Start()
     {
+        Rotation();
+
         // INITIALIZE THE STATEMACHINE FACTORY AND START STATE
         states = new PlayerStateFactory(this);
         currentState = states.Grounded();
@@ -133,12 +145,31 @@ public class PlayerStateMachine : MonoBehaviour
         currentState.UpdateStates();
 
         Movement();
-        Rotation();
+        LedgeVault();
         Gravity();
         LocomotionAnimation();
     }
 
+    private void LateUpdate()
+    {
+        Rotation();
+        //ThirdPersonRotation();
+    }
+
     #region ROTATION
+    //Vector2 camRot = Vector2.zero;
+    //Vector2 playerRot = Vector2.zero;
+    //void ThirdPersonRotation()
+    //{
+    //    camRot.x += mouseSensitivity * playerInputHandler.RotationInput.x;
+    //    camRot.y = Mathf.Clamp(camRot.y - mouseSensitivity * playerInputHandler.RotationInput.y, -upDownLookRange, upDownLookRange);
+
+    //    playerRot.x += transform.eulerAngles.x + mouseSensitivity * playerInputHandler.RotationInput.x;
+    //    transform.rotation = Quaternion.Euler(0f, playerRot.x, 0f);
+
+    //    mainCamera.transform.rotation = Quaternion.Euler(camRot.y, camRot.x, 0f);
+    //}
+
     private void Rotation()
     {
         float mouseXRot = playerInputHandler.RotationInput.x * mouseSensitivity;
@@ -153,6 +184,7 @@ public class PlayerStateMachine : MonoBehaviour
         // Stop the cam from rotating too far and clipping
         verticalRotation = Mathf.Clamp(verticalRotation - rotationAmount, -upDownLookRange, upDownLookRange);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+        dummyCam.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
     }
 
     private void ApplyHorizontalRotation(float rotationAmount)
@@ -165,6 +197,7 @@ public class PlayerStateMachine : MonoBehaviour
     void Movement()
     {
         isMovementPressed = inputDir.x != 0 || inputDir.z != 0;
+        if (!canMove) { return; }
         if (!isMovementPressed)
         {
             currentSpeed -= moveAcceleration * Time.deltaTime;
@@ -206,6 +239,11 @@ public class PlayerStateMachine : MonoBehaviour
     #endregion
 
     #region GENERAL
+    private void ChangePerspective()
+    {
+        cameraStateAnimator.SetTrigger(povTriggerHash);
+    }
+
     public Vector3 CalculateWorldDirection(Vector3 _newInputDir)
     {
         inputDir = _newInputDir;
@@ -231,25 +269,75 @@ public class PlayerStateMachine : MonoBehaviour
         Vector3 rayOrigin = characterController.transform.position;
         Vector3 rayDirection = Vector3.down;
         Debug.DrawRay(rayOrigin, rayDirection, Color.red);
-        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 1f))
+        if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hitInfo, 0.25f))
         {
             if (!characterController.isGrounded)
             {
-                Debug.Log("STILL GROUNDED");
+                //Debug.Log("STILL GROUNDED");
                 groundedFailSafe = true;
             }
             else
             {
-                Debug.Log("STILL GROUNDED");
+                //Debug.Log("STILL GROUNDED");
                 groundedFailSafe = true;
             }
         }
         else
         {
-            Debug.Log("ACTUALLY NOT GROUNDED");
+            //Debug.Log("ACTUALLY NOT GROUNDED");
             groundedFailSafe = false;
         }
     }
+
+    #region LEDGE VAULT
+    void LedgeVault()
+    {
+        Vector3 rayOrigin = characterController.transform.position + Vector3.up * (characterController.height / 2f);
+        Debug.DrawRay(rayOrigin, transform.forward, Color.red);
+
+        if (isJumping && inputDir.z != 0)
+        {
+            if (Physics.Raycast(rayOrigin, transform.forward, out RaycastHit firstHit, .5f, ledgeMask))
+            {
+                if (firstHit.collider.isTrigger)
+                {
+                    gravity = 0f;
+                    canMove = false;
+                    characterController.enabled = false;
+
+                    // CREATE A RAYCAST HIT AND POINT BASED OFF THE FIRST LEDGE HIT AND THE CharCtrl RADIUS/HEIGHT
+                    if (Physics.Raycast(firstHit.point + (transform.forward * characterController.radius * 1.2f) + (Vector3.up * 0.6f * characterController.height), Vector3.down, out RaycastHit secondHit, characterController.height))
+                        StartCoroutine(LerpVault(1, secondHit.point, 0.5f));
+                }
+            }
+        }
+    }
+
+    IEnumerator LerpVault(int _animDuration, Vector3 _targetPos, float _duration)
+    {
+        //vaultCoroutineStarted = true;
+        int counter = _animDuration;
+        while (counter > 0)
+        {
+            yield return new WaitForSeconds(1);
+            counter--;
+        }
+
+        float _time = 0f;
+        Vector3 _startPosition = transform.position;
+
+        while (_time < _duration)
+        {
+            transform.position = Vector3.Lerp(_startPosition, _targetPos, _time / _duration);
+            _time += Time.deltaTime;
+            yield return null;
+        }
+        transform.position = _targetPos;
+        gravity = -48f;
+        canMove = true;
+        characterController.enabled = true;
+    }
+    #endregion
 
     private void LocomotionAnimation()
     {

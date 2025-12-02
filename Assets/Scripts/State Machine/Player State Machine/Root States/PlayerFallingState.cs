@@ -30,7 +30,12 @@ public class PlayerFallingState : PlayerBaseState
 
     public override void CheckSwitchStates()
     {
-        if (bs_Ctx.sm_characterController.isGrounded)
+        //if (bs_Ctx.sm_characterController.isGrounded)
+        //{
+        //    SwitchState(bs_Factory.Grounded());
+        //}
+
+        if (bs_Ctx.sm_groundedFailSafe)
         {
             SwitchState(bs_Factory.Grounded());
         }

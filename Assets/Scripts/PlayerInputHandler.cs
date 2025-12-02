@@ -14,6 +14,7 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
 
     #region Input Unity Action Events
     public event UnityAction interactEvent;
+    public event UnityAction perspectiveChangeEvent;
     public event UnityAction jumpEventStarted;
     public event UnityAction jumpEventCancelled;
     #endregion
@@ -96,5 +97,12 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
     {
         playerInput.Player.Crouch.started += inputInfo => CrouchPressed = true;
         playerInput.Player.Crouch.canceled += inputInfo => CrouchPressed = false;
+    }
+
+    public void OnPerspective(InputAction.CallbackContext context)
+    {
+        if (perspectiveChangeEvent != null &&
+            context.phase == InputActionPhase.Performed)
+            perspectiveChangeEvent.Invoke();
     }
 }

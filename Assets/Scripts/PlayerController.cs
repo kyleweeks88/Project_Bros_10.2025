@@ -82,7 +82,7 @@ public class PlayerController : MonoBehaviour
         HandleRotation();
         HandleCrouching();
         HandleSprinting();
-        LedgeClimbing();
+        LedgeVault();
 
         HandleGravity();
         HandleJumping();
@@ -261,7 +261,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void LedgeClimbing()
+    void LedgeVault()
     {
         Vector3 rayOrigin = characterController.transform.position + Vector3.up * (characterController.height / 2f);
         Debug.DrawRay(rayOrigin, transform.forward, Color.red);
