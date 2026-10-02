@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0eb8586eac63ffd40b64f2e844f5a93d, type: 3}
+  m_Name: DefaultStyle
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeStyleData
+  styleName: Default Style
+  lightAttack1Chain:
+  - {fileID: 11400000, guid: f32d52c167cfbc04aa8b122fc1cb4d21, type: 2}
+  - {fileID: 11400000, guid: 547e804352159da47bc82263292cfb84, type: 2}
+  - {fileID: 11400000, guid: 2d10597d5bec15b43ac3b77fb3afe321, type: 2}
+  lightAttack2Chain:
+  - {fileID: 11400000, guid: cf1c51e0ad154c74fb8789fb68cd27b8, type: 2}
+  heavyAttack1Chain:
+  - {fileID: 11400000, guid: 959cdb77499c59f4f8eb285209bf61b2, type: 2}
+  heavyAttack2Chain:
+  - {fileID: 11400000, guid: 93cdf8e26ab6bac409cad63c60aa687c, type: 2}
+  airborneLightAttack1: {fileID: 11400000, guid: 7dd8740812278204288860f9a43f19de, type: 2}
+  airborneLightAttack2: {fileID: 11400000, guid: 096775c7a35d0d44dbf1cf63b91cf596, type: 2}
+  airborneHeavyAttack1: {fileID: 11400000, guid: ce393bd778866a243a958c30d4e3eb8f, type: 2}
+  airborneHeavyAttack2: {fileID: 11400000, guid: 19e47afb68633c747b627f60bcc8f1d3, type: 2}
