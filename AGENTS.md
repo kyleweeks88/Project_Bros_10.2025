@@ -1,8 +1,8 @@
 <!-- UNITY CODE ASSIST INSTRUCTIONS START -->
 - Project name: Project_Bros_10.2025
-- Unity version: Unity 6000.2.9f1
+- Unity version: Unity 6000.6.3f1
 - Active game object:
-  - Name: Game Initializer
+  - Name: MeleeHitbox
   - Tag: Untagged
-  - Layer: Default
+  - Layer: Player
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
