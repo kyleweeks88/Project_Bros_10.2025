@@ -94,7 +94,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             input,
             locomotion,
             meleeCombat,
-            damageController
+            damageController,
+            myStats
         );
 
         actions = new PlayerActionController(actionContext);
@@ -107,6 +108,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         actions.ActionEnded += OnActionEnded;
         interaction.Interacted += OnInteracted;
         locomotion.Landed += abilities.NotifyGrounded;
+        locomotion.Landed += myStats.RefillJuggleCount;
         myStats.Died += OnDeath;
     }
 
@@ -344,6 +346,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             actions.ActionEnded -= OnActionEnded;
             interaction.Interacted -= OnInteracted;
             locomotion.Landed -= abilities.NotifyGrounded;
+            locomotion.Landed -= myStats.RefillJuggleCount;
             myStats.Died -= OnDeath;
         }
 

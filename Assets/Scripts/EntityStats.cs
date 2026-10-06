@@ -11,8 +11,12 @@ public class EntityStats : MonoBehaviour
 
     [Header("Various")]
     [SerializeField] private float knockbackResistance = 0f;
+    [SerializeField] private int maxJuggleCount = 1;
+    private int juggleCount;
 
 
+    public int JuggleCount => juggleCount;
+    public int MaxJuggleCount => maxJuggleCount;
     public float KnockbackResistance => knockbackResistance;
     public float MaxHealth => maxHealth;
     public float CurrentHealth { get; private set; }
@@ -26,8 +30,38 @@ public class EntityStats : MonoBehaviour
     private void Awake()
     {
         CurrentHealth = MaxHealth;
+        juggleCount = Mathf.Max(0, maxJuggleCount);
     }
 
+    #region Juggle Count
+    public bool TryConsumeJuggleCount()
+    {
+        if (juggleCount <= 0)
+            return false;
+
+        juggleCount--;
+        return true;
+    }
+
+    public void RefillJuggleCount()
+    {
+        juggleCount = Mathf.Max(0, maxJuggleCount);
+    }
+
+    public void AddJuggleCount(int amount = 1)
+    {
+        if (amount <= 0)
+            return;
+
+        maxJuggleCount += amount;
+        juggleCount = Mathf.Min(
+            juggleCount + amount,
+            maxJuggleCount
+            );
+    }
+    #endregion
+
+    #region Health & Dying
     public void TakeDamage(float damage)
     {
         if (IsDead)
@@ -66,4 +100,5 @@ public class EntityStats : MonoBehaviour
 
         Died?.Invoke();
     }
+    #endregion
 }

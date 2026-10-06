@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
-  m_Name: Default_Airborne_LightAttack1
+  m_Name: Default_Airborne_LightAttack2_Knee
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
-  attackName: 
-  attackType: 2
-  startupTime: 0.2
-  activeTime: 0.5
-  recoveryTime: 0.1
-  movementDuration: 0.8
-  horizontalMovementDistance: 0
-  verticalMovementDistance: 10
-  playerVerticalMoveDirection: 1
+  attackName: Spin Kick
+  attackType: 3
+  startupTime: 0.15
+  activeTime: 0.2
+  recoveryTime: 0.25
+  movementDuration: 0.75
+  horizontalMovementDistance: 2
+  verticalMovementDistance: 0
+  playerVerticalMoveDirection: 0
   comboWindowStart: 0.25
   inputBufferTime: 0.25
   canCharge: 0
@@ -29,4 +29,4 @@ MonoBehaviour:
   maximumPower: 1
   targetVerticalKnockbackDirection: 1
   horizontalKnockbackForce: 0
-  verticalKnockbackForce: 20
+  verticalKnockbackForce: 1

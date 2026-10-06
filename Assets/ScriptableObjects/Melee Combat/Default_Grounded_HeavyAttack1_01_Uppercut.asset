@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
-  m_Name: Default_Airborne_HeavyAttack2
+  m_Name: Default_Grounded_HeavyAttack1_01_Uppercut
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
   attackName: Uppercut
-  attackType: 1
+  attackType: 0
   startupTime: 0.4
   activeTime: 0.3
-  recoveryTime: 0.6
-  movementDuration: 0.25
-  horizontalMovementDistance: 1
-  verticalMovementDistance: 3
-  playerVerticalMoveDirection: 1
+  recoveryTime: 0.15
+  movementDuration: 0
+  horizontalMovementDistance: 0
+  verticalMovementDistance: 0
+  playerVerticalMoveDirection: 0
   comboWindowStart: 0.15
   inputBufferTime: 0.25
   canCharge: 1
@@ -28,5 +28,5 @@ MonoBehaviour:
   minimumPower: 1.5
   maximumPower: 10
   targetVerticalKnockbackDirection: 1
-  horizontalKnockbackForce: 6
+  horizontalKnockbackForce: 0
   verticalKnockbackForce: 12

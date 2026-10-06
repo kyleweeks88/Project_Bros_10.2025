@@ -87,6 +87,13 @@ public class MeleeAttackAction : PlayerAction
 
     private Vector3 attackDirection;
 
+    // PENDING ATTACK MOVEMENT
+    private Vector3 pendingAttackMovementDirection;
+    private float pendingAttackMovementDistance;
+    private float pendingAttackMovementDuration;
+    private bool hasPendingAttackMovement;
+    private bool pendingAttackUsesApexHangTime;
+
     private readonly bool isAirborneAttack;
     public bool IsAirborneAttack => isAirborneAttack;
 
@@ -105,6 +112,9 @@ public class MeleeAttackAction : PlayerAction
 
     public override void OnStarted()
     {
+        hasPendingAttackMovement = false;
+        pendingAttackUsesApexHangTime = false;
+
         chargePercent = 0f;
         timer = 0f;
         attackReleased = false;
@@ -124,14 +134,12 @@ public class MeleeAttackAction : PlayerAction
         Context.MeleeCombat.SetHitboxActive(false);
 
 
-        // TESTING PURPOSES
         if(isAirborneAttack)
         {
             Context.Locomotion.StartAirborneAttack(
                 AirborneAttackGravityMultiplier
                 );
         }
-        // TESTING
 
         if (attackData.CanCharge)
         {
@@ -161,6 +169,9 @@ public class MeleeAttackAction : PlayerAction
 
     public override void OnEnded()
     {
+        hasPendingAttackMovement = false;
+        pendingAttackUsesApexHangTime = false;
+
         // TESTING PURPOSES
         if(isAirborneAttack)
         {
@@ -241,7 +252,8 @@ public class MeleeAttackAction : PlayerAction
             damageInfo,
             attackData.HorizontalKnockbackForce,
             attackData.VerticalKnockbackForce,
-            attackData.TargetVerticalKnockbackDirection
+            attackData.TargetVerticalKnockbackDirection,
+            OnAttackConnected
         );
 
         Context.MeleeCombat.SetHitboxActive(true);
@@ -306,19 +318,18 @@ public class MeleeAttackAction : PlayerAction
 
     private void ApplyAttackMovement()
     {
-        if (attackData.HorizontalMovementDistance <= 0f &&
-            attackData.VerticalMovementDistance <= 0f)
+        if (attackData.MovementDuration <= 0f ||
+            (attackData.HorizontalMovementDistance <= 0f &&
+             attackData.VerticalMovementDistance <= 0f))
         {
             return;
         }
 
-        Vector3 movementDirection = attackDirection;
-
-        // Grounded attacks remain horizontal.
+        // Grounded attacks keep their existing horizontal movement.
         if (!isAirborneAttack)
         {
             Context.Locomotion.ApplyAttackMovement(
-                movementDirection,
+                attackDirection,
                 attackData.HorizontalMovementDistance,
                 attackData.MovementDuration
             );
@@ -326,48 +337,75 @@ public class MeleeAttackAction : PlayerAction
             return;
         }
 
-        // Build the airborne movement using
-        // independent horizontal and vertical distances.
-        Vector3 horizontalMovement =
-            attackDirection *
-            attackData.HorizontalMovementDistance;
+        Vector3 aerialMovement =
+            attackDirection * attackData.HorizontalMovementDistance;
 
         float verticalMovement = 0f;
 
         switch (attackData.PlayerVerticalMoveDirection)
         {
             case VerticalAttackDirection.Up:
-                verticalMovement =
-                    attackData.VerticalMovementDistance;
+                verticalMovement = attackData.VerticalMovementDistance;
                 break;
 
             case VerticalAttackDirection.Down:
-                verticalMovement =
-                    -attackData.VerticalMovementDistance;
-                break;
-
-            case VerticalAttackDirection.None:
+                verticalMovement = -attackData.VerticalMovementDistance;
                 break;
         }
-
-        Vector3 aerialMovement =
-            horizontalMovement;
 
         aerialMovement.y = verticalMovement;
 
         float distance = aerialMovement.magnitude;
 
+        // An attack with no effective movement doesn't use the free movement.
         if (distance <= 0.001f)
             return;
 
-        Vector3 aerialDirection =
-            aerialMovement.normalized;
+        Vector3 direction = aerialMovement.normalized;
+        bool useApexHangTime = verticalMovement > 0f;
+
+        // The first airborne attack with movement gets to move immediately.
+        if (Context.Locomotion.TryUseFirstAirborneAttackMovement())
+        {
+            if (!Context.Stats.TryConsumeJuggleCount())
+                return;
+
+            Context.Locomotion.ApplyAttackMovement(
+                direction,
+                distance,
+                attackData.MovementDuration,
+                useApexHangTime
+            );
+
+            return;
+        }
+
+        // Later airborne attacks save their movement until this attack hits.
+        pendingAttackMovementDirection = direction;
+        pendingAttackMovementDistance = distance;
+        pendingAttackMovementDuration = attackData.MovementDuration;
+        pendingAttackUsesApexHangTime = useApexHangTime;
+        hasPendingAttackMovement = true;
+    }
+
+    private void OnAttackConnected()
+    {
+        if (!hasPendingAttackMovement)
+            return;
+
+        hasPendingAttackMovement = false;
+
+        if (!Context.Stats.TryConsumeJuggleCount())
+            return;
 
         Context.Locomotion.ApplyAttackMovement(
-            aerialDirection,
-            distance,
-            attackData.MovementDuration
+            pendingAttackMovementDirection,
+            pendingAttackMovementDistance,
+            pendingAttackMovementDuration,
+            pendingAttackUsesApexHangTime
         );
+
+        pendingAttackUsesApexHangTime = false;
     }
 
     #endregion

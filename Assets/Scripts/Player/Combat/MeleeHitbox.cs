@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class MeleeHitbox : MonoBehaviour
 {
@@ -9,17 +10,19 @@ public class MeleeHitbox : MonoBehaviour
     private DamageInfo damageInfo;
 
     private Transform attackerTransform;
-    //private float knockbackMagnitude;
     private float horizontalKnockbackForce;
     private float verticalKnockbackForce;
     private VerticalAttackDirection targetVerticalKnockbackDirection;
+
+    private Action onAttackConnected;
 
     public void SetAttackDamage(
         DamageInfo damageInfo,
         Transform attackerTransform,
         float horizontalKnockbackForce,
         float verticalKnockbackForce,
-        VerticalAttackDirection targetVerticalKnockbackDirection)
+        VerticalAttackDirection targetVerticalKnockbackDirection,
+        Action onAttackConnected)
     {
         this.damageInfo = damageInfo;
         this.attackerTransform = attackerTransform;
@@ -27,6 +30,7 @@ public class MeleeHitbox : MonoBehaviour
         this.verticalKnockbackForce = verticalKnockbackForce;
         this.targetVerticalKnockbackDirection =
             targetVerticalKnockbackDirection;
+        this.onAttackConnected = onAttackConnected;
 
         affectedTargets.Clear();
     }
@@ -85,6 +89,10 @@ public class MeleeHitbox : MonoBehaviour
             );
 
         damageable.ReceiveDamage(finalDamage);
+
+        Action callback = onAttackConnected;
+        onAttackConnected = null;
+        callback?.Invoke();
 
         Debug.Log(
             $"Melee hit {other.gameObject.name} | " +

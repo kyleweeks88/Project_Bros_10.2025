@@ -13,7 +13,7 @@ public class NPCLocomotion : IPhysicsMove
 
     private const float PhysicsDeceleration = 20f;
     private const float Gravity = -25f;
-    private const float ApexGravitySuspensionDuration = 0.12f;
+    private const float ApexGravitySuspensionDuration = 0.25f;
 
     private float apexSuspensionTimer;
     private bool isRisingFromKnockback;
@@ -51,12 +51,18 @@ public class NPCLocomotion : IPhysicsMove
         if (navMeshAgent == null)
             return;
 
-        physicsVelocity += force;
+        physicsVelocity.x += force.x;
+        physicsVelocity.z += force.z;
 
-        if (force.y > 0f && physicsVelocity.y > 0f)
+        if (force.y > 0f)
         {
+            physicsVelocity.y = force.y;
             isRisingFromKnockback = true;
             apexSuspensionTimer = 0f;
+        }
+        else
+        {
+            physicsVelocity.y += force.y;
         }
 
         if (!isPhysicsMoving)
