@@ -3,6 +3,12 @@ using UnityEngine;
 
 public class EntityStats : MonoBehaviour
 {
+    [Header("Movement")]
+    [SerializeField] private float baseJumpHeight = 1.5f;
+    private float jumpHeightModifier;
+    public float JumpHeight =>
+    MathF.Max(0f, baseJumpHeight + jumpHeightModifier);
+
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
 
@@ -32,6 +38,18 @@ public class EntityStats : MonoBehaviour
         CurrentHealth = MaxHealth;
         juggleCount = Mathf.Max(0, maxJuggleCount);
     }
+
+    #region Jumps
+    public void AddJumpHeightModifier(float amount)
+    {
+        jumpHeightModifier += amount;
+    }
+
+    public void RemoveJumpHeightModifier(float amount)
+    {
+        jumpHeightModifier -= amount;
+    }
+    #endregion
 
     #region Juggle Count
     public bool TryConsumeJuggleCount()

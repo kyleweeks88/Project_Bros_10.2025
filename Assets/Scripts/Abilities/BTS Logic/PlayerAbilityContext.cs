@@ -49,9 +49,9 @@ public class PlayerAbilityContext
         Locomotion.SetAbilityGravityOverride(value);
     }
 
-    public void PerformExtraJump(float jumpHeight)
+    public void PerformExtraJump()
     {
-        Locomotion.PerformExtraJump(jumpHeight);
+        Locomotion.PerformExtraJump();
     }
 
     public Vector3 GetCameraRelativeDirection(Vector2 input)

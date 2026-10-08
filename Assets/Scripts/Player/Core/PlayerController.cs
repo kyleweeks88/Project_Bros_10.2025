@@ -51,14 +51,14 @@ public class PlayerController : MonoBehaviour, IDamageable
             characterController,
             input,
             mainCamera,
-            transform
+            transform,
+            myStats
         );
 
         cameraController = new CameraController(
             mainCamera.transform,
             transform,
-            input//,
-            //locomotion
+            input
         );
 
         targetLock = new TargetLockController(
