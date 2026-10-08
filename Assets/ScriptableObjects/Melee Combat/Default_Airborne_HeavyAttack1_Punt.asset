@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
-  m_Name: Default_Grounded_HeavyAttack1_01_Haymaker
+  m_Name: Default_Airborne_HeavyAttack1_Punt
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
-  attackName: Haymaker
+  attackName: Punt
   attackType: 0
-  startupTime: 0.4
+  startupTime: 0.1
   activeTime: 0.3
   recoveryTime: 0.6
-  movementDuration: 1
-  horizontalMovementDistance: 0.25
+  movementDuration: 0
+  horizontalMovementDistance: 0
   verticalMovementDistance: 0
   playerVerticalMoveDirection: 0
   comboWindowStart: 0.15
@@ -27,6 +27,6 @@ MonoBehaviour:
   maxChargeTime: 1.5
   minimumPower: 1.5
   maximumPower: 10
-  targetVerticalKnockbackDirection: 0
+  targetVerticalKnockbackDirection: 1
   horizontalKnockbackForce: 12
-  verticalKnockbackForce: 0
+  verticalKnockbackForce: 10

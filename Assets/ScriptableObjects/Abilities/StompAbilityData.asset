@@ -16,5 +16,5 @@ MonoBehaviour:
   abilityType: 3
   impactRadius: 3
   knockbackForce: 5
-  upwardModifier: 0
+  upwardModifier: 10
   damage: 0

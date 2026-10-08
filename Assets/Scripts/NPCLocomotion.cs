@@ -13,7 +13,10 @@ public class NPCLocomotion : IPhysicsMove
 
     private const float PhysicsDeceleration = 20f;
     private const float Gravity = -25f;
+    private const float ApexGravitySuspensionDuration = 0.25f;
 
+    private float apexSuspensionTimer;
+    private bool isRisingFromKnockback;
     private bool isPhysicsMoving;
 
     public bool IsGrounded =>
@@ -29,9 +32,8 @@ public class NPCLocomotion : IPhysicsMove
 
     public void Start()
     {
-        targetTransform = 
-            GameObject.FindGameObjectWithTag
-            ("Player").transform;
+        targetTransform =
+            GameObject.FindGameObjectWithTag("Player").transform;
     }
 
     public void Update()
@@ -41,7 +43,7 @@ public class NPCLocomotion : IPhysicsMove
         // TESTING ONLY
         navMeshAgent.SetDestination(
             targetTransform.position
-            );
+        );
     }
 
     public void ApplyKnockback(Vector3 force)
@@ -49,12 +51,24 @@ public class NPCLocomotion : IPhysicsMove
         if (navMeshAgent == null)
             return;
 
-        physicsVelocity += force;
+        physicsVelocity.x += force.x;
+        physicsVelocity.z += force.z;
 
-        if(!isPhysicsMoving)
+        if (force.y > 0f)
+        {
+            physicsVelocity.y = force.y;
+            isRisingFromKnockback = true;
+            apexSuspensionTimer = 0f;
+        }
+        else
+        {
+            physicsVelocity.y += force.y;
+        }
+
+        if (!isPhysicsMoving)
         {
             navMeshAgent.ResetPath();
-        }    
+        }
 
         isPhysicsMoving = true;
     }
@@ -78,14 +92,44 @@ public class NPCLocomotion : IPhysicsMove
 
     private void HandlePhysicsMovement()
     {
-        if (!IsGrounded)
+        if (apexSuspensionTimer > 0f)
         {
-            physicsVelocity.y +=
-                Gravity * Time.deltaTime;
+            apexSuspensionTimer = Mathf.Max(
+                0f,
+                apexSuspensionTimer - Time.deltaTime
+            );
+
+            physicsVelocity.y = 0f;
         }
-        else if (physicsVelocity.y < 0f)
+        else if (!IsGrounded)
         {
-            physicsVelocity.y = -2f;
+            float nextVerticalVelocity =
+                physicsVelocity.y + Gravity * Time.deltaTime;
+
+            // Begin the hang-time when gravity would carry an upward
+            // knockback through its apex on this frame.
+            if (isRisingFromKnockback &&
+                physicsVelocity.y > 0f &&
+                nextVerticalVelocity <= 0f)
+            {
+                apexSuspensionTimer =
+                    ApexGravitySuspensionDuration;
+                physicsVelocity.y = 0f;
+                isRisingFromKnockback = false;
+            }
+            else
+            {
+                physicsVelocity.y = nextVerticalVelocity;
+            }
+        }
+        else
+        {
+            isRisingFromKnockback = false;
+
+            if (physicsVelocity.y < 0f)
+            {
+                physicsVelocity.y = -2f;
+            }
         }
 
         characterController.Move(
@@ -94,10 +138,8 @@ public class NPCLocomotion : IPhysicsMove
 
         DeceleratePhysicsVelocity();
 
-
-        // TESTING THIS FOR NOW AFTER NOT PROPERLY 
+        // TESTING THIS FOR NOW AFTER NOT PROPERLY
         // RESETTING THE isPhysicsMoving BOOL.
-
         Vector3 horizontalVelocity =
             new Vector3(
                 physicsVelocity.x,
@@ -110,8 +152,9 @@ public class NPCLocomotion : IPhysicsMove
         {
             physicsVelocity.x = 0f;
             physicsVelocity.z = 0f;
-
             physicsVelocity.y = 0f;
+            apexSuspensionTimer = 0f;
+            isRisingFromKnockback = false;
 
             navMeshAgent.Warp(
                 characterController.transform.position
@@ -133,14 +176,10 @@ public class NPCLocomotion : IPhysicsMove
         horizontalVelocity = Vector3.MoveTowards(
             horizontalVelocity,
             Vector3.zero,
-            PhysicsDeceleration *
-            Time.deltaTime
+            PhysicsDeceleration * Time.deltaTime
         );
 
-        physicsVelocity.x =
-            horizontalVelocity.x;
-
-        physicsVelocity.z =
-            horizontalVelocity.z;
+        physicsVelocity.x = horizontalVelocity.x;
+        physicsVelocity.z = horizontalVelocity.z;
     }
 }

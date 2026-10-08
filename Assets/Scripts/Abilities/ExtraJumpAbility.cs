@@ -69,7 +69,7 @@ public class ExtraJumpAbility : PlayerAbility
         if (!CanActivate())
             return false;
 
-        Context.PerformExtraJump(extraJumpData.JumpHeight);
+        Context.PerformExtraJump();
         remainingJumps--;
 
         return true;

@@ -4,6 +4,7 @@ using UnityEngine;
 public class PlayerLocomotion : IPhysicsMove
 {
     // COMPONENT REF
+    private readonly EntityStats entityStats;
     private readonly CharacterController characterController;
     private readonly PlayerInputHandler input;
     private readonly Transform cameraTransform;
@@ -13,6 +14,9 @@ public class PlayerLocomotion : IPhysicsMove
     private Vector3 attackMovementVelocity;
     private float attackMovementTimer;
     private float attackMovementDuration;
+    private bool pendingMeleeApexHang;
+    private float meleeApexHangTimer;
+    private const float MeleeApexGravitySuspensionDuration = 0.25f;
 
     // JUMP ATTACK MOVEMENT
     private float gravityMultiplier = 1f;
@@ -20,6 +24,7 @@ public class PlayerLocomotion : IPhysicsMove
     private const float
         AirborneAttackVerticalTransitionTime = 0.2f;
     private bool airborneAttackVerticalTransition;
+    private bool hasUsedFirstAirborneAttackMovement;
 
     // ATTACK ROTATION
     private bool rotationLocked;
@@ -45,7 +50,6 @@ public class PlayerLocomotion : IPhysicsMove
 
     // GRAVITY AND JUMPING
     private const float Gravity = -25f;
-    private const float JumpHeight = 2f;
     private bool jumpRequested;
 
     // CLIMBING
@@ -85,7 +89,8 @@ public class PlayerLocomotion : IPhysicsMove
     CharacterController characterController,
     PlayerInputHandler input,
     Camera camera,
-    Transform playerTransform)
+    Transform playerTransform,
+    EntityStats entityStats)
     {
         this.characterController = characterController;
         this.input = input;
@@ -100,6 +105,7 @@ public class PlayerLocomotion : IPhysicsMove
             : LocomotionState.Airborne;
 
         input.jumpEventPressed += OnJumpPressed;
+        this.entityStats = entityStats;
     }
 
     // LIFECYCLE
@@ -148,6 +154,7 @@ public class PlayerLocomotion : IPhysicsMove
         if(previousState == LocomotionState.Airborne &&
             currentState == LocomotionState.Grounded)
         {
+            hasUsedFirstAirborneAttackMovement = false;
             Landed?.Invoke();
         }
     }
@@ -187,6 +194,15 @@ public class PlayerLocomotion : IPhysicsMove
 
     #region ATTACK MOVEMENT
 
+    public bool TryUseFirstAirborneAttackMovement()
+    {
+        if (hasUsedFirstAirborneAttackMovement)
+            return false;
+
+        hasUsedFirstAirborneAttackMovement = true;
+        return true;
+    }
+
     private Vector3 GetAttackMovement()
     {
         if(attackMovementTimer >= attackMovementDuration)
@@ -204,8 +220,12 @@ public class PlayerLocomotion : IPhysicsMove
     public void ApplyAttackMovement(
         Vector3 direction,
         float distance,
-        float duration)
+        float duration,
+        bool useApexHangTime = false)
     {
+        pendingMeleeApexHang = false;
+        meleeApexHangTimer = 0f;
+
         if (distance <= 0f || duration <= 0f)
             return;
 
@@ -215,6 +235,7 @@ public class PlayerLocomotion : IPhysicsMove
             return;
 
         direction.Normalize();
+        pendingMeleeApexHang = useApexHangTime;
 
         attackMovementVelocity =
             direction * (distance / duration);
@@ -250,13 +271,13 @@ public class PlayerLocomotion : IPhysicsMove
         abilityGravityOverride = value;
     }
 
-    public void PerformExtraJump(float jumpHeight)
+    public void PerformExtraJump()
     {
-        if (jumpHeight <= 0f)
+        if (entityStats.JumpHeight <= 0f)
             return;
 
         VerticalVelocity = Mathf.Sqrt(
-            jumpHeight * -2f * Gravity
+            entityStats.JumpHeight * -2f * Gravity
         );
     }
 
@@ -349,7 +370,7 @@ public class PlayerLocomotion : IPhysicsMove
 
     #endregion
 
-    #region GRAVITY AND JUMPING
+    #region GRAVITY
 
     private void HandleGravity()
     {
@@ -362,9 +383,37 @@ public class PlayerLocomotion : IPhysicsMove
             return;
         }
 
+        if (characterController.isGrounded)
+        {
+            pendingMeleeApexHang = false;
+            meleeApexHangTimer = 0f;
+        }
+
+        if (meleeApexHangTimer > 0f)
+        {
+            meleeApexHangTimer = Mathf.Max(
+                0f,
+                meleeApexHangTimer - Time.deltaTime);
+            velocity.y = 0f;
+            return;
+        }
+
         if (characterController.isGrounded && velocity.y < 0f)
         {
             velocity.y = -2f;
+        }
+
+        // Melee movement is a timed displacement, so its apex is the
+        // end of the upward movement rather than a gravity velocity crossing.
+        if (pendingMeleeApexHang &&
+            attackMovementTimer >= attackMovementDuration)
+        {
+            pendingMeleeApexHang = false;
+            meleeApexHangTimer =
+                MeleeApexGravitySuspensionDuration;
+            velocity.y = 0f;
+            attackMovementVelocity.y = 0f;
+            return;
         }
 
         velocity.y +=
@@ -373,6 +422,13 @@ public class PlayerLocomotion : IPhysicsMove
             Time.deltaTime;
     }
 
+    public void SetGravityMultiplier(float multiplier)
+    {
+        gravityMultiplier = Mathf.Max(0f, multiplier);
+    }
+    #endregion
+
+    #region JUMP & AIRBORNE MOVEMENT
     private void HandleJump()
     {
         if (!jumpRequested)
@@ -385,13 +441,8 @@ public class PlayerLocomotion : IPhysicsMove
             return;
 
         velocity.y = Mathf.Sqrt(
-            JumpHeight * -2f * Gravity
+            entityStats.JumpHeight * -2f * Gravity
         );
-    }
-
-    public void SetGravityMultiplier(float multiplier)
-    {
-        gravityMultiplier = Mathf.Max(0f, multiplier);
     }
 
     public void StartAirborneAttack(
@@ -428,7 +479,6 @@ public class PlayerLocomotion : IPhysicsMove
     {
         airborneAttackVerticalTransition = false;
     }
-
     #endregion
 
     #region CLIMBING

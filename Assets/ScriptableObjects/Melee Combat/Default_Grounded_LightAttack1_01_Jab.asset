@@ -17,16 +17,16 @@ MonoBehaviour:
   startupTime: 0.15
   activeTime: 0.2
   recoveryTime: 0.25
-  movementDuration: 0.5
-  horizontalMovementDistance: 0.25
-  verticalMovementDistance: 0
-  playerVerticalMoveDirection: 0
+  movementDuration: 1
+  horizontalMovementDistance: 0
+  verticalMovementDistance: 15
+  playerVerticalMoveDirection: 1
   comboWindowStart: 0.25
   inputBufferTime: 0.25
   canCharge: 0
   maxChargeTime: 1.5
   minimumPower: 1
   maximumPower: 1
-  targetVerticalKnockbackDirection: 0
-  horizontalKnockbackForce: 5
-  verticalKnockbackForce: 0
+  targetVerticalKnockbackDirection: 1
+  horizontalKnockbackForce: 0
+  verticalKnockbackForce: 15

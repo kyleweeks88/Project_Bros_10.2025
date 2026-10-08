@@ -10,23 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
-  m_Name: Default_Airborne_HeavyAttack1
+  m_Name: Default_Airborne_HeavyAttack2_TornadoPunch
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
-  attackName: Axe Kick
-  attackType: 0
-  startupTime: 0.4
+  attackName: Punch Up
+  attackType: 1
+  startupTime: 0.1
   activeTime: 0.3
-  recoveryTime: 0.6
+  recoveryTime: 0
   movementDuration: 0.25
-  horizontalMovementDistance: 0
-  verticalMovementDistance: 4
-  playerVerticalMoveDirection: 2
+  horizontalMovementDistance: 1
+  verticalMovementDistance: 3
+  playerVerticalMoveDirection: 1
   comboWindowStart: 0.15
   inputBufferTime: 0.25
   canCharge: 1
   maxChargeTime: 1.5
   minimumPower: 1.5
   maximumPower: 10
-  targetVerticalKnockbackDirection: 2
-  horizontalKnockbackForce: 0
-  verticalKnockbackForce: 4
+  targetVerticalKnockbackDirection: 1
+  horizontalKnockbackForce: 6
+  verticalKnockbackForce: 12

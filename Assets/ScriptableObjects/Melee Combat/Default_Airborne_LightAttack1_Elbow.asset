@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
-  m_Name: Default_Airborne_LightAttack2
+  m_Name: Default_Airborne_LightAttack1_Elbow
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
-  attackName: 
-  attackType: 3
-  startupTime: 0.15
-  activeTime: 0.2
-  recoveryTime: 0.25
-  movementDuration: 0.75
-  horizontalMovementDistance: 2
+  attackName: Elbow
+  attackType: 2
+  startupTime: 0.2
+  activeTime: 0.5
+  recoveryTime: 0.1
+  movementDuration: 1
+  horizontalMovementDistance: 0.75
   verticalMovementDistance: 0
   playerVerticalMoveDirection: 0
   comboWindowStart: 0.25
@@ -27,6 +27,6 @@ MonoBehaviour:
   maxChargeTime: 1.5
   minimumPower: 1
   maximumPower: 1
-  targetVerticalKnockbackDirection: 0
-  horizontalKnockbackForce: 20
-  verticalKnockbackForce: 0
+  targetVerticalKnockbackDirection: 1
+  horizontalKnockbackForce: 0
+  verticalKnockbackForce: 1

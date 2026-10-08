@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class MeleeCombatController
 {
@@ -181,14 +182,16 @@ public class MeleeCombatController
         DamageInfo damageInfo,
         float horizontalKnockbackForce,
         float verticalKnockbackForce,
-        VerticalAttackDirection targetVerticalKnockbackDirection)
+        VerticalAttackDirection targetVerticalKnockbackDirection,
+        Action onAttackConnected)
     {
         hitbox.SetAttackDamage(
             damageInfo,
             attackerTransform,
             horizontalKnockbackForce,
             verticalKnockbackForce,
-            targetVerticalKnockbackDirection
+            targetVerticalKnockbackDirection,
+            onAttackConnected
         );
     }
     #endregion
