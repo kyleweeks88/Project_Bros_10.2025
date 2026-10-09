@@ -3,7 +3,10 @@ using UnityEngine;
 public enum EntityStatUpgradeType
 {
     JumpHeight,
-    MoveSpeed
+    MoveSpeed,
+    BlockDamageMitigation,
+    BlockKnockbackMitigation,
+    BlockAngle
 }
 
 [CreateAssetMenu(

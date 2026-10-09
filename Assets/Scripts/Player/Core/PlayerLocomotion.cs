@@ -41,6 +41,7 @@ public class PlayerLocomotion : IPhysicsMove
     //private const float SprintSpeed = 8f;
     private const float Acceleration = 20f;
     private const float Deceleration = 50f;
+    private float movementSpeedMultiplier = 1f;
     private bool movementLocked;
     public bool MovementLocked => movementLocked;
 
@@ -291,6 +292,11 @@ public class PlayerLocomotion : IPhysicsMove
         movementLocked = locked;
     }
 
+    public void SetMovementSpeedMultiplier(float multiplier)
+    {
+        movementSpeedMultiplier = Mathf.Max(0f, multiplier);
+    }
+
     private void HandleMovement()
     {
         if(movementLocked)
@@ -346,6 +352,8 @@ public class PlayerLocomotion : IPhysicsMove
         float targetSpeed = input.SprintPressed
             ? entityStats.MoveSpeed * SprintSpeedMultiplier
             : entityStats.MoveSpeed;
+
+        targetSpeed *= movementSpeedMultiplier;
 
         Vector3 targetVelocity = movement * targetSpeed;
 

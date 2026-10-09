@@ -245,7 +245,8 @@ public class MeleeAttackAction : PlayerAction
             Context.DamageController.CalculateOutgoingDamage(
                 AttackMultiplier,
                 Vector3.zero,
-                DamageSourceType.Melee
+                DamageSourceType.Melee,
+                Context.Transform.position
                 );
 
         Context.MeleeCombat.SetHitboxDamage(

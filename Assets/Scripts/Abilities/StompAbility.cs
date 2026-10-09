@@ -105,7 +105,8 @@ public class StompAbility : PlayerAbility
                     Context.DamageController.CalculateOutgoingDamage(
                         stompData.Damage,
                         knockback,
-                        DamageSourceType.Ability
+                        DamageSourceType.Ability,
+                        Context.Transform.position
                     );
 
                 damageable.ReceiveDamage(damageInfo);

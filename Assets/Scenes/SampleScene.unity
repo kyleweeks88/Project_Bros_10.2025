@@ -798,6 +798,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!195 &851134036
@@ -939,6 +942,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!195 &860371458
@@ -1512,7 +1518,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1448621375
 Transform:
   m_ObjectHideFlags: 0
@@ -1541,10 +1547,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8adc6a78936489643a09fc6497fec00e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  attackRange: 2
+  attackRange: 1
   attackDamage: 0
-  attackKnockback: 0
-  attackCooldown: 1
+  attackKnockback: 4
+  attackCooldown: 2
 --- !u!114 &1448621377
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1561,6 +1567,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!195 &1448621378
@@ -1577,7 +1586,7 @@ NavMeshAgent:
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
-  m_StoppingDistance: 2
+  m_StoppingDistance: 0.75
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
@@ -1797,6 +1806,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!195 &1502500140
@@ -2647,6 +2659,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!1 &1963737347
@@ -5064,6 +5079,9 @@ MonoBehaviour:
   baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 1
+  baseBlockDamageMitigation: 0.5
+  baseBlockKnockbackMitigation: 0.75
+  baseBlockAngle: 60
   knockbackResistance: 0
   maxJuggleCount: 1
 --- !u!4 &8821719822117781919

@@ -20,6 +20,33 @@ public class EntityStats : MonoBehaviour
 
     [Header("Combat")]
     [SerializeField] private float damageOutput = 10f;
+    #region BLOCKING VALUES
+    [SerializeField, Range(0f, 1f)]
+    private float baseBlockDamageMitigation = 0.5f;
+    private float blockDamageMitigationModifier;
+    [SerializeField, Range(0f, 1f)]
+    private float baseBlockKnockbackMitigation = 0.75f;
+    private float blockKnockbackMitigationModifier;
+    [SerializeField, Range(0f, 360f)]
+    private float baseBlockAngle = 60f;
+    private float blockAngleModifier;
+
+    public float BlockDamageMitigation =>
+    Mathf.Clamp01(
+        baseBlockDamageMitigation *
+        (1f + blockDamageMitigationModifier));
+
+    public float BlockKnockbackMitigation =>
+        Mathf.Clamp01(
+            baseBlockKnockbackMitigation *
+            (1f + blockKnockbackMitigationModifier));
+
+    public float BlockAngle =>
+        Mathf.Clamp(
+            baseBlockAngle * (1f + blockAngleModifier),
+            0f,
+            360f);
+    #endregion
 
     [Header("Various")]
     [SerializeField] private float knockbackResistance = 0f;
@@ -60,12 +87,41 @@ public class EntityStats : MonoBehaviour
                 AddMoveSpeedModifier(upgradeData.PercentageIncrease);
                 return true;
 
+            case EntityStatUpgradeType.BlockDamageMitigation:
+                AddBlockDamageMitigationModifier(upgradeData.PercentageIncrease);
+                return true;
+
+            case EntityStatUpgradeType.BlockKnockbackMitigation:
+                AddBlockKnockbackMitigationModifier(upgradeData.PercentageIncrease);
+                return true;
+
+            case EntityStatUpgradeType.BlockAngle:
+                AddBlockAngleModifier(upgradeData.PercentageIncrease);
+                return true;
+
             default:
                 return false;
         }
     }
 
-    #region Movement
+    #region BLOCKING
+    public void AddBlockDamageMitigationModifier(float percentageIncrease)
+    {
+        blockDamageMitigationModifier += percentageIncrease / 100f;
+    }
+
+    public void AddBlockKnockbackMitigationModifier(float percentageIncrease)
+    {
+        blockKnockbackMitigationModifier += percentageIncrease / 100f;
+    }
+
+    public void AddBlockAngleModifier(float percentageIncrease)
+    {
+        blockAngleModifier += percentageIncrease / 100f;
+    }
+    #endregion
+
+    #region MOVEMENT
     public void AddMoveSpeedModifier(float percentageIncrease)
     {
         moveSpeedModifier += percentageIncrease / 100f;
