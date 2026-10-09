@@ -17,7 +17,7 @@ MonoBehaviour:
   startupTime: 0.2
   activeTime: 0.5
   recoveryTime: 0.1
-  movementDuration: 1
+  movementDuration: 0.5
   horizontalMovementDistance: 0.75
   verticalMovementDistance: 0
   playerVerticalMoveDirection: 0
@@ -27,6 +27,6 @@ MonoBehaviour:
   maxChargeTime: 1.5
   minimumPower: 1
   maximumPower: 1
-  targetVerticalKnockbackDirection: 1
-  horizontalKnockbackForce: 0
-  verticalKnockbackForce: 1
+  targetVerticalKnockbackDirection: 0
+  horizontalKnockbackForce: 1
+  verticalKnockbackForce: 0
