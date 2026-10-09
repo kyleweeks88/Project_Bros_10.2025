@@ -36,8 +36,9 @@ public class PlayerLocomotion : IPhysicsMove
 
     // MOVEMENT
     private Vector3 velocity;
-    private const float MoveSpeed = 5f;
-    private const float SprintSpeed = 8f;
+    private const float SprintSpeedMultiplier = 1.6f;
+    //private const float MoveSpeed = 5f;
+    //private const float SprintSpeed = 8f;
     private const float Acceleration = 20f;
     private const float Deceleration = 50f;
     private bool movementLocked;
@@ -343,8 +344,8 @@ public class PlayerLocomotion : IPhysicsMove
         }
 
         float targetSpeed = input.SprintPressed
-            ? SprintSpeed
-            : MoveSpeed;
+            ? entityStats.MoveSpeed * SprintSpeedMultiplier
+            : entityStats.MoveSpeed;
 
         Vector3 targetVelocity = movement * targetSpeed;
 
