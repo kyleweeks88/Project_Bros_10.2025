@@ -765,7 +765,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &851134034
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -778,10 +778,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8adc6a78936489643a09fc6497fec00e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  attackRange: 2
-  attackDamage: 10
-  attackKnockback: 8
-  attackCooldown: 1
+  attackRange: 1
+  attackDamage: 0
+  attackKnockback: 4
+  attackCooldown: 2
+  attackWindupDuration: 0.4
+  attackStrikeFlashDuration: 0.15
+  attackWindupColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackStrikeColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &851134035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -926,6 +930,10 @@ MonoBehaviour:
   attackDamage: 10
   attackKnockback: 8
   attackCooldown: 1
+  attackWindupDuration: 0.4
+  attackStrikeFlashDuration: 0.15
+  attackWindupColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackStrikeColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &860371457
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1551,6 +1559,10 @@ MonoBehaviour:
   attackDamage: 0
   attackKnockback: 4
   attackCooldown: 2
+  attackWindupDuration: 0.4
+  attackStrikeFlashDuration: 0.15
+  attackWindupColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackStrikeColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &1448621377
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1773,7 +1785,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1502500138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1786,10 +1798,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8adc6a78936489643a09fc6497fec00e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  attackRange: 2
-  attackDamage: 10
-  attackKnockback: 8
-  attackCooldown: 1
+  attackRange: 1
+  attackDamage: 0
+  attackKnockback: 4
+  attackCooldown: 2
+  attackWindupDuration: 0.4
+  attackStrikeFlashDuration: 0.15
+  attackWindupColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackStrikeColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &1502500139
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2966,6 +2982,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   meleeStyle: {fileID: 11400000, guid: ccc4aa18224caf14fbfe7285f1258256, type: 2}
   meleeHitbox: {fileID: 408330394}
+  dodgeIFrameDuration: 0.25
+  dodgeRecoveryDuration: 0.2
+  blockDebugRadius: 3
 --- !u!4 &111680946961175015
 Transform:
   m_ObjectHideFlags: 0
@@ -5078,7 +5097,7 @@ MonoBehaviour:
   baseMoveSpeed: 4
   baseJumpHeight: 1.5
   maxHealth: 100
-  damageOutput: 1
+  damageOutput: 25
   baseBlockDamageMitigation: 0.5
   baseBlockKnockbackMitigation: 0.75
   baseBlockAngle: 60

@@ -20,13 +20,13 @@ MonoBehaviour:
   movementDuration: 1
   horizontalMovementDistance: 0
   verticalMovementDistance: 15
-  playerVerticalMoveDirection: 1
+  playerVerticalMoveDirection: 0
   comboWindowStart: 0.25
   inputBufferTime: 0.25
   canCharge: 0
   maxChargeTime: 1.5
   minimumPower: 1
   maximumPower: 1
-  targetVerticalKnockbackDirection: 1
+  targetVerticalKnockbackDirection: 0
   horizontalKnockbackForce: 0
   verticalKnockbackForce: 15
