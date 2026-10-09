@@ -794,6 +794,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 1
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
   knockbackResistance: 0
@@ -933,6 +935,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 1
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
   knockbackResistance: 0
@@ -1276,6 +1280,67 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1330935791}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &1371356976
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4247052199899006685, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: upgradeData
+      value: 
+      objectReference: {fileID: 11400000, guid: d7cbea38f5df83844a978b11cd3117c9, type: 2}
+    - target: {fileID: 4411686627629347998, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_Name
+      value: Stat Upgrade Pickup (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.64
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7.76
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.70710677
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -90
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
 --- !u!1001 &1416488231
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1447,7 +1512,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1448621375
 Transform:
   m_ObjectHideFlags: 0
@@ -1492,6 +1557,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 1
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
   knockbackResistance: 0
@@ -1726,6 +1793,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 1
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
   knockbackResistance: 0
@@ -2574,6 +2643,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 1
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 10
   knockbackResistance: 0
@@ -3219,6 +3290,63 @@ Transform:
   - {fileID: 1265422050712301199}
   m_Father: {fileID: 7105170247453130872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1530304859213843700
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4411686627629347998, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_Name
+      value: Stat Upgrade Pickup
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.64
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5.96
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.70710677
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7790416762979841758, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -90
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8127d773534ec0f4ba5fb7bba164703b, type: 3}
 --- !u!4 &1744240627602662782
 Transform:
   m_ObjectHideFlags: 0
@@ -4932,6 +5060,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a029d4e3109d9f45a596c8aa21ce830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityStats
+  baseMoveSpeed: 4
+  baseJumpHeight: 1.5
   maxHealth: 100
   damageOutput: 1
   knockbackResistance: 0
@@ -5042,3 +5172,5 @@ SceneRoots:
   - {fileID: 860371461}
   - {fileID: 1557262482}
   - {fileID: 1935074053}
+  - {fileID: 1530304859213843700}
+  - {fileID: 1371356976}

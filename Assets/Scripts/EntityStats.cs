@@ -4,10 +4,16 @@ using UnityEngine;
 public class EntityStats : MonoBehaviour
 {
     [Header("Movement")]
+    [SerializeField] private float baseMoveSpeed = 1.0f;
+    private float moveSpeedModifier;
+    public float MoveSpeed =>
+        MathF.Max(0f, baseMoveSpeed * (1f + moveSpeedModifier));
+
+    [Header("Jumps")]
     [SerializeField] private float baseJumpHeight = 1.5f;
     private float jumpHeightModifier;
     public float JumpHeight =>
-    MathF.Max(0f, baseJumpHeight + jumpHeightModifier);
+    MathF.Max(0f, baseJumpHeight * (1f + jumpHeightModifier));
 
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
@@ -39,15 +45,47 @@ public class EntityStats : MonoBehaviour
         juggleCount = Mathf.Max(0, maxJuggleCount);
     }
 
-    #region Jumps
-    public void AddJumpHeightModifier(float amount)
+    public bool ApplyUpgrade(EntityStatUpgradeData upgradeData)
     {
-        jumpHeightModifier += amount;
+        if (upgradeData == null)
+            return false;
+
+        switch(upgradeData.StatType)
+        {
+            case EntityStatUpgradeType.JumpHeight:
+                AddJumpHeightModifier(upgradeData.PercentageIncrease);
+                return true;
+
+            case EntityStatUpgradeType.MoveSpeed:
+                AddMoveSpeedModifier(upgradeData.PercentageIncrease);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
-    public void RemoveJumpHeightModifier(float amount)
+    #region Movement
+    public void AddMoveSpeedModifier(float percentageIncrease)
     {
-        jumpHeightModifier -= amount;
+        moveSpeedModifier += percentageIncrease / 100f;
+    }
+
+    public void RemoveMoveSpeedModifier(float percentageIncrease)
+    {
+        moveSpeedModifier -= percentageIncrease / 100f;
+    }
+    #endregion
+
+    #region Jumps
+    public void AddJumpHeightModifier(float percentageIncrease)
+    {
+        jumpHeightModifier += percentageIncrease / 100f;
+    }
+
+    public void RemoveJumpHeightModifier(float percentageIncrease)
+    {
+        jumpHeightModifier -= percentageIncrease / 100f;
     }
     #endregion
 

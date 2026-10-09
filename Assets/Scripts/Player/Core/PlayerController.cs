@@ -131,6 +131,13 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     #endregion
 
+    public bool ApplyStatUpgrade(EntityStatUpgradeData upgradeData)
+    {
+        if(myStats == null) return false;
+
+        return myStats.ApplyUpgrade(upgradeData);
+    }
+
     private void OnTargetLock()
     {
         targetLock.ToggleLock();
