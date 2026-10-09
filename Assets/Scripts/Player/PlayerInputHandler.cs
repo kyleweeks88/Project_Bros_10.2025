@@ -10,11 +10,12 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
 
     public Vector2 MovementInput { get; private set; }
     public Vector2 RotationInput { get; private set; }
-
-    // public bool JumpPressed { get; private set; }
     public bool SprintPressed { get; private set; }
-    // public bool CrouchPressed { get; private set; }
-    // public bool TestAttackPressed { get; private set; }
+    public bool HeavyAttack1Held { get; private set; }
+    public bool HeavyAttack2Held { get; private set; }
+    public bool LightAttack1Held { get; private set; }
+    public bool LightAttack2Held { get; private set; }
+
 
 
     // ============================================================
@@ -111,9 +112,7 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
         MovementInput = Vector2.zero;
         RotationInput = Vector2.zero;
 
-        //JumpPressed = false;
         SprintPressed = false;
-        //CrouchPressed = false;
     }
 
 
@@ -263,37 +262,71 @@ public class PlayerInputHandler : MonoBehaviour, PlayerInput.IPlayerActions
     public void OnHeavyAttack1(InputAction.CallbackContext context)
     {
         if (context.started)
+        {
+            HeavyAttack1Held = true;
+
             meleeAttackStartedEvent?.Invoke(
                 MeleeAttackType.HeavyAttack1);
+        }
 
         if (context.canceled)
+        {
+            HeavyAttack1Held = false;
+
             meleeAttackReleasedEvent?.Invoke(
                 MeleeAttackType.HeavyAttack1);
+        }
     }
 
     public void OnHeavyAttack2(InputAction.CallbackContext context)
     {
         if (context.started)
+        {
+            HeavyAttack2Held = true;
+
             meleeAttackStartedEvent?.Invoke(
                 MeleeAttackType.HeavyAttack2);
+        }
 
         if (context.canceled)
+        {
+            HeavyAttack2Held = false;
+
             meleeAttackReleasedEvent?.Invoke(
                 MeleeAttackType.HeavyAttack2);
+        }
     }
 
     public void OnLightAttack1(InputAction.CallbackContext context)
     {
         if (context.started)
+        {
+            LightAttack1Held = true;
+
             meleeAttackStartedEvent?.Invoke(
                 MeleeAttackType.LightAttack1);
+        }
+
+        if (context.canceled)
+        {
+            LightAttack1Held = false;
+        }
     }
 
     public void OnLightAttack2(InputAction.CallbackContext context)
     {
         if (context.started)
+        {
+            LightAttack2Held = true;
+
             meleeAttackStartedEvent?.Invoke(
                 MeleeAttackType.LightAttack2);
+        }
+
+        if (context.canceled)
+        {
+            LightAttack2Held = false;
+        }
     }
 
     // ============================================================

@@ -65,7 +65,9 @@ public class NPCLocomotion : IPhysicsMove
             physicsVelocity.y += force.y;
         }
 
-        if (!isPhysicsMoving)
+        if (!isPhysicsMoving &&
+            navMeshAgent.isActiveAndEnabled &&
+            navMeshAgent.isOnNavMesh)
         {
             navMeshAgent.ResetPath();
         }

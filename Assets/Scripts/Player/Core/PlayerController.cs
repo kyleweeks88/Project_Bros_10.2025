@@ -30,10 +30,34 @@ public class PlayerController : MonoBehaviour, IDamageable
     public PlayerLocomotion Locomotion => locomotion;
 
 
-    // TEMPORARY FOR PROTO TESTING ???
+    // TEMPORARY FOR PROTO TESTING ??? //
     [Header("Melee Style")]
     [SerializeField] private MeleeStyleData meleeStyle;
     [SerializeField] private GameObject meleeHitbox;
+
+    // DODGING STUFF
+    private const float LightAttackDodgeChordWindow = 0.12f;
+    private float pendingLightAttackTimer;
+    private MeleeAttackType? pendingLightAttackType;
+    [SerializeField, Min(0f)]
+    private float dodgeIFrameDuration = 0.25f;
+    [SerializeField, Min(0f)]
+    private float dodgeRecoveryDuration = 0.2f;
+
+    // BLOCKING STUFF
+    private const float HeavyAttackChordWindow = 0.12f;
+    private float pendingHeavyAttackTimer;
+    private MeleeAttackType? pendingHeavyAttackType;
+    public bool IsBlocking =>
+        actions != null &&
+        actions.GetCurrentAction<BlockAction>() != null &&
+        locomotion != null &&
+        locomotion.IsGrounded;
+
+    // DEBUG GIZMOS AND STUFF
+    [Header("Block Debug")]
+    [SerializeField, Min(0.1f)]
+    private float blockDebugRadius = 3f;
 
 
     #region LIFECYCLE
@@ -121,6 +145,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         abilities.UpdateAbilities();
         locomotion.Update();
 
+        UpdateHeavyAttackChord();
+        UpdateLightAttackChord();
         actions.Update();
     }
 
@@ -129,7 +155,26 @@ public class PlayerController : MonoBehaviour, IDamageable
         cameraController.LateUpdate();
     }
 
+    private void OnDestroy()
+    {
+        if (input != null)
+        {
+            input.targetLockEvent -= OnTargetLock;
+            input.abilitySlotEvent -= OnAbilitySlot;
+            input.jumpEventPressed -= OnJumpPressed;
+            input.meleeAttackStartedEvent -= OnMeleeInputStarted;
+            input.meleeAttackReleasedEvent -= OnMeleeInputReleased;
+            actions.ActionEnded -= OnActionEnded;
+            interaction.Interacted -= OnInteracted;
+            locomotion.Landed -= abilities.NotifyGrounded;
+            locomotion.Landed -= myStats.RefillJuggleCount;
+            myStats.Died -= OnDeath;
+        }
+
+        locomotion?.Dispose();
+    }
     #endregion
+
 
     public bool ApplyStatUpgrade(EntityStatUpgradeData upgradeData)
     {
@@ -223,8 +268,57 @@ public class PlayerController : MonoBehaviour, IDamageable
         extraJump?.TryActivate();
     }
 
-    private void OnMeleeInputStarted(
-        MeleeAttackType attackType)
+    #region MELEE INPUT
+    private void OnMeleeInputStarted(MeleeAttackType attackType)
+    {
+        if (IsBlocking)
+            return;
+
+        if (attackType == MeleeAttackType.LightAttack1 ||
+            attackType == MeleeAttackType.LightAttack2)
+        {
+            if (pendingLightAttackType.HasValue &&
+                input.LightAttack1Held &&
+                input.LightAttack2Held)
+            {
+                pendingLightAttackType = null;
+                TryStartDodge();
+                return;
+            }
+
+            if (!pendingLightAttackType.HasValue)
+            {
+                pendingLightAttackType = attackType;
+                pendingLightAttackTimer = 0f;
+            }
+
+            return;
+        }
+
+        if (IsHeavyAttack(attackType))
+        {
+            if (input.HeavyAttack1Held &&
+                input.HeavyAttack2Held &&
+                locomotion.IsGrounded)
+            {
+                pendingHeavyAttackType = null;
+                TryStartBlock();
+                return;
+            }
+
+            if (!pendingHeavyAttackType.HasValue)
+            {
+                pendingHeavyAttackType = attackType;
+                pendingHeavyAttackTimer = 0f;
+            }
+
+            return;
+        }
+
+        HandleMeleeInputStarted(attackType);
+    }
+
+    private void HandleMeleeInputStarted(MeleeAttackType attackType)
     {
         if (actions.IsBusy)
         {
@@ -234,16 +328,19 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (currentAttack == null)
                 return;
 
-            if(currentAttack.CanBufferComboInput)
-            {
+            if (currentAttack.CanBufferComboInput)
                 currentAttack.BufferComboInput();
-                return;
-            }
 
             return;
         }
 
         StartMeleeAttack(attackType);
+    }
+
+    private bool IsHeavyAttack(MeleeAttackType attackType)
+    {
+        return attackType == MeleeAttackType.HeavyAttack1 ||
+               attackType == MeleeAttackType.HeavyAttack2;
     }
 
     private void StartMeleeAttack(
@@ -282,17 +379,99 @@ public class PlayerController : MonoBehaviour, IDamageable
         actions.TryStartAction(attack);
     }
 
-    private void OnMeleeInputReleased(
-    MeleeAttackType attackType)
+    private void OnMeleeInputReleased(MeleeAttackType attackType)
     {
+        if (actions.GetCurrentAction<BlockAction>() != null)
+        {
+            actions.EndAction();
+            return;
+        }
+
+        if (pendingHeavyAttackType == attackType)
+        {
+            pendingHeavyAttackType = null;
+
+            MeleeAttackAction previousAttack =
+                actions.GetCurrentAction<MeleeAttackAction>();
+
+            HandleMeleeInputStarted(attackType);
+
+            MeleeAttackAction currentAttack =
+                actions.GetCurrentAction<MeleeAttackAction>();
+
+            if (currentAttack != null &&
+                currentAttack != previousAttack)
+            {
+                currentAttack.ReleaseAttack();
+            }
+
+            return;
+        }
+
         MeleeAttackAction meleeAttack =
             actions.GetCurrentAction<MeleeAttackAction>();
 
-        if (meleeAttack == null)
+        meleeAttack?.ReleaseAttack();
+    }
+
+    private void UpdateHeavyAttackChord()
+    {
+        if (!pendingHeavyAttackType.HasValue)
             return;
 
-        meleeAttack.ReleaseAttack();
+        pendingHeavyAttackTimer += Time.deltaTime;
+
+        if (pendingHeavyAttackTimer < HeavyAttackChordWindow)
+            return;
+
+        MeleeAttackType attackType =
+            pendingHeavyAttackType.Value;
+
+        pendingHeavyAttackType = null;
+
+        HandleMeleeInputStarted(attackType);
     }
+
+    private void UpdateLightAttackChord()
+    {
+        if (!pendingLightAttackType.HasValue)
+            return;
+
+        pendingLightAttackTimer += Time.deltaTime;
+
+        if (pendingLightAttackTimer < LightAttackDodgeChordWindow)
+            return;
+
+        MeleeAttackType attackType =
+            pendingLightAttackType.Value;
+
+        pendingLightAttackType = null;
+
+        HandleMeleeInputStarted(attackType);
+    }
+
+    private void TryStartDodge()
+    {
+        if (actions.IsBusy)
+            return;
+
+        DodgeAction dodge = new DodgeAction(
+            actionContext,
+            dodgeIFrameDuration,
+            dodgeRecoveryDuration);
+
+        actions.TryStartAction(dodge);
+    }
+
+    private void TryStartBlock()
+    {
+        if (actions.IsBusy || !locomotion.IsGrounded)
+            return;
+
+        actions.TryStartAction(
+            new BlockAction(actionContext));
+    }
+    #endregion
 
     private void OnActionEnded(PlayerAction endedAction)
     {
@@ -341,28 +520,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         actions.TryStartAction(nextAttack);
     }
 
-    private void OnDestroy()
-    {
-        if (input != null)
-        {
-            input.targetLockEvent -= OnTargetLock;
-            input.abilitySlotEvent -= OnAbilitySlot;
-            input.jumpEventPressed -= OnJumpPressed;
-            input.meleeAttackStartedEvent -= OnMeleeInputStarted;
-            input.meleeAttackReleasedEvent -= OnMeleeInputReleased;
-            actions.ActionEnded -= OnActionEnded;
-            interaction.Interacted -= OnInteracted;
-            locomotion.Landed -= abilities.NotifyGrounded;
-            locomotion.Landed -= myStats.RefillJuggleCount;
-            myStats.Died -= OnDeath;
-        }
-
-        locomotion?.Dispose();
-    }
-
     public void ReceiveDamage(DamageInfo damageInfo)
     {
-        damageController.ReceiveDamage(damageInfo);
+        damageController.ReceiveDamage(
+            damageInfo,
+            transform,
+            IsBlocking);
     }
 
     private void OnDeath()
@@ -371,4 +534,87 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         Debug.Log("YOU HAVE DIED!");
     }
+
+    #region DEBUG GIZMOS
+    private void OnDrawGizmosSelected()
+    {
+        EntityStats stats = GetComponent<EntityStats>();
+
+        if (stats == null)
+            return;
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude <= 0.001f)
+            return;
+
+        forward.Normalize();
+
+        float halfAngle = stats.BlockAngle * 0.5f;
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+
+        Color previousColor = Gizmos.color;
+        Gizmos.color = IsBlocking ? Color.green : Color.cyan;
+
+        Vector3 previousPoint =
+            origin +
+            Quaternion.AngleAxis(-halfAngle, Vector3.up) *
+            forward *
+            blockDebugRadius;
+
+        const int segments = 24;
+
+        for (int i = 1; i <= segments; i++)
+        {
+            float t = i / (float)segments;
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
+
+            Vector3 direction =
+                Quaternion.AngleAxis(angle, Vector3.up) * forward;
+
+            Vector3 point = origin + direction * blockDebugRadius;
+
+            Gizmos.DrawLine(previousPoint, point);
+            previousPoint = point;
+        }
+
+        Vector3 leftEdge =
+            Quaternion.AngleAxis(-halfAngle, Vector3.up) *
+            forward;
+
+        Vector3 rightEdge =
+            Quaternion.AngleAxis(halfAngle, Vector3.up) *
+            forward;
+
+        Gizmos.DrawLine(origin, origin + leftEdge * blockDebugRadius);
+        Gizmos.DrawLine(origin, origin + rightEdge * blockDebugRadius);
+
+        Gizmos.color = previousColor;
+
+        // DODGE GIZMOS
+        CharacterController playerCollider =
+        GetComponent<CharacterController>();
+
+        if (playerCollider != null)
+        {
+            Color prevColor = Gizmos.color;
+
+            bool dodgeIFramesActive =
+                Application.isPlaying &&
+                damageController != null &&
+                damageController.IsInvulnerable;
+
+            Gizmos.color = dodgeIFramesActive
+                ? Color.green
+                : Color.red;
+
+            Gizmos.DrawWireCube(
+                playerCollider.bounds.center,
+                playerCollider.bounds.size);
+
+            Gizmos.color = prevColor;
+        }
+    }
+    #endregion
 }
