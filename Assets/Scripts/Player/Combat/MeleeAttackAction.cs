@@ -13,6 +13,15 @@ public class MeleeAttackAction : PlayerAction
     private readonly MeleeAttackData attackData;
     public MeleeAttackData AttackData => attackData;
 
+    #region ATTACK CANCELLING
+    private bool wasCancelled;
+    public bool WasCancelled => wasCancelled;
+    public bool CanCancelBeforeHitbox =>
+        phase == AttackPhase.Charging ||
+        (phase == AttackPhase.Startup &&
+        timer < attackData.StartupTime);
+    #endregion
+
     #region ATTACK PHASE STUFF
     private enum AttackPhase
     {
@@ -112,6 +121,7 @@ public class MeleeAttackAction : PlayerAction
 
     public override void OnStarted()
     {
+        wasCancelled = false;
         hasPendingAttackMovement = false;
         pendingAttackUsesApexHangTime = false;
 
@@ -407,6 +417,17 @@ public class MeleeAttackAction : PlayerAction
         );
 
         pendingAttackUsesApexHangTime = false;
+    }
+
+    public bool TryCancelBeforeHitbox()
+    {
+        if (!CanCancelBeforeHitbox)
+            return false;
+
+        wasCancelled = true;
+        comboInputBuffered = false;
+
+        return true;
     }
 
     #endregion

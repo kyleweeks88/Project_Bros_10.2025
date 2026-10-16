@@ -29,6 +29,31 @@ public class TargetLockController
         this.targetMask = targetMask;
     }
 
+    public void Update()
+    {
+        if (!IsLocked)
+            return;
+
+        Transform targetTransform =
+            currentTarget.TargetTransform;
+
+        if (targetTransform == null)
+        {
+            Unlock();
+            return;
+        }
+
+        float maxDistanceSquared =
+            lockOnRange * lockOnRange;
+
+        float distanceSquared =
+            (targetTransform.position -
+             playerTransform.position).sqrMagnitude;
+
+        if (distanceSquared > maxDistanceSquared)
+            Unlock();
+    }
+
     public void ToggleLock()
     {
         if (IsLocked)

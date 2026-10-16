@@ -180,12 +180,6 @@ public class CameraController
             return;
         }
 
-        if (Vector3.Distance(playerTransform.position, lockTarget.TargetTransform.position) > 6f)
-        {
-            ClearLockTarget();
-            return;
-        }
-
         Vector2 lookInput = input.RotationInput;
 
         pitch -= lookInput.y * LookSensitivity;
