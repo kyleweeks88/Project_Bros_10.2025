@@ -124,6 +124,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         actions = new PlayerActionController(actionContext);
 
+        targetLock.TargetUnlocked += 
+            cameraController.ClearLockTarget;
         input.targetLockEvent += OnTargetLock;
         input.abilitySlotEvent += OnAbilitySlot;
         input.jumpEventPressed += OnJumpPressed;
@@ -138,6 +140,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        targetLock.Update();
         cameraController.Update();
 
         locomotion.UpdateRotation(cameraController.Yaw);
@@ -159,6 +162,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         if (input != null)
         {
+            targetLock.TargetUnlocked -=
+                cameraController.ClearLockTarget;
             input.targetLockEvent -= OnTargetLock;
             input.abilitySlotEvent -= OnAbilitySlot;
             input.jumpEventPressed -= OnJumpPressed;
@@ -255,6 +260,17 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             actions.EndAction();
             return;
+        }
+
+        MeleeAttackAction currentAttack =
+            actions.GetCurrentAction<MeleeAttackAction>();
+
+        if(currentAttack != null)
+        {
+            if (!currentAttack.TryCancelBeforeHitbox())
+                return;
+
+            actions.EndAction();
         }
 
         // Normal jumping belongs to PlayerLocomotion.
@@ -450,10 +466,29 @@ public class PlayerController : MonoBehaviour, IDamageable
         HandleMeleeInputStarted(attackType);
     }
 
+    private bool TryCancelMeleeAttackBeforeHitbox()
+    {
+        MeleeAttackAction meleeAttack =
+            actions.GetCurrentAction<MeleeAttackAction>();
+
+        if (meleeAttack == null ||
+            !meleeAttack.TryCancelBeforeHitbox())
+        {
+            return false;
+        }
+
+        return actions.EndAction();
+    }
+    #endregion
+
+    #region DODGE AND BLOCK
     private void TryStartDodge()
     {
-        if (actions.IsBusy)
+        if (actions.IsBusy &&
+            !TryCancelMeleeAttackBeforeHitbox())
+        {
             return;
+        }
 
         DodgeAction dodge = new DodgeAction(
             actionContext,
@@ -465,8 +500,14 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void TryStartBlock()
     {
-        if (actions.IsBusy || !locomotion.IsGrounded)
+        if (!locomotion.IsGrounded)
             return;
+
+        if (actions.IsBusy &&
+            !TryCancelMeleeAttackBeforeHitbox())
+        {
+            return;
+        }
 
         actions.TryStartAction(
             new BlockAction(actionContext));
@@ -477,6 +518,12 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         if (endedAction is not MeleeAttackAction meleeAttack)
             return;
+
+        if(meleeAttack.WasCancelled)
+        {
+            meleeCombat.ResetChain();
+            return;
+        }
 
         if(meleeAttack.IsAirborneAttack)
         {

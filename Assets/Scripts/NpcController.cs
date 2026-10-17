@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(EntityStats))]
-public class EnemyController : MonoBehaviour, ITargetable, IDamageable
+public class NpcController : MonoBehaviour, ITargetable, IDamageable
 {
     // TEMPORARY MELEE TESTING
     [Header("TEMP MELEE")]
