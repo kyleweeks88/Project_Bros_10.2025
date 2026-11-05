@@ -12,11 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5568e3a7d5028b645b6a0fd23d95c8f3, type: 3}
   m_Name: Default_Grounded_LightAttack2_01_LightKick
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
+  attackName: 
   attackType: 3
-  startupTime: 0.2
+  startupTime: 0.1
   activeTime: 0.2
-  recoveryTime: 0.4
+  recoveryTime: 0.2
+  movementDuration: 0.2
+  horizontalMovementDistance: 0.5
+  verticalMovementDistance: 0
+  playerVerticalMoveDirection: 0
+  comboWindowStart: 0.15
+  inputBufferTime: 0.25
   canCharge: 0
   maxChargeTime: 1.5
   minimumPower: 1
   maximumPower: 1
+  targetVerticalKnockbackDirection: 0
+  horizontalKnockbackForce: 0
+  verticalKnockbackForce: 0

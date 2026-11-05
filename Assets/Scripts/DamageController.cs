@@ -97,6 +97,11 @@ public class DamageController
                 calculatedDamage = amount;
                 Debug.Log("OUTGOING: Ability Damage Source");
                 break;
+
+            case DamageSourceType.Projectile:
+                calculatedDamage = stats.DamageOutput * amount;
+                Debug.Log("OUTGOING: Projectile Attack Damage Source");
+                break;
         }
 
         return new DamageInfo(

@@ -5,7 +5,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 {
     // CONTROLLERS
     private DamageController damageController;
-    private MeleeCombatController meleeCombat;
+    private PlayerCombatController meleeCombat;
     private CharacterController characterController;
     private CameraController cameraController;
     private PlayerActionController actions;
@@ -96,7 +96,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             myStats,
             locomotion);
 
-        meleeCombat = new MeleeCombatController(
+        meleeCombat = new PlayerCombatController(
             meleeHitbox,
             transform
             );
