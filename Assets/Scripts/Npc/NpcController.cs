@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(EntityStats))]
 [RequireComponent(typeof(FactionMember))]
@@ -14,6 +15,14 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     [Tooltip("How far an NPC will chase a target after detecting it.")]
     [SerializeField, Min(0f)]
     private float targetRetentionDistance = 20f;
+    [Tooltip("A new hostile must be this much closer before the NPC switches targets.")]
+    [SerializeField, Min(0f)]
+    private float targetSwitchDistanceAdvantage = 1.5f;
+    [Tooltip("How long an attacker stays the NPC's priority target after hitting it.")]
+    [SerializeField, Min(0f)]
+    private float attackerTargetPriorityDuration = 2f;
+
+    private float attackerTargetPriorityTimer;
     [SerializeField] private NpcAwareness awareness = NpcAwareness.Unaware;
     public NpcAwareness Awareness => awareness;
 
@@ -25,7 +34,27 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         DispositionChanged;
     private NpcDispositionBehavior currentBehavior;
 
-    [Header("Combat")]
+    [Header("Maneuvering")]
+    [SerializeField, Min(0f)]
+    private float attackApproachPadding = 4f;
+
+    [SerializeField, Min(0f)]
+    private float zigZagLateralDistance = 1.25f;
+
+    [SerializeField, Min(0.5f)]
+    private float zigZagWaypointSpacing = 3f;
+
+    public float AttackApproachPadding =>
+        attackApproachPadding;
+
+    public float ZigZagLateralDistance =>
+        zigZagLateralDistance;
+
+    public float ZigZagWaypointSpacing =>
+        zigZagWaypointSpacing;
+
+
+    [Header("Ranged Combat")]
     // RANGED
     [SerializeField] private RangedAttackData rangedAttackData;
     [SerializeField] private Transform projectileSpawnPoint;
@@ -33,7 +62,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     public Transform ProjectileSpawnPoint => projectileSpawnPoint;
     [Tooltip("Desired horizontal distance to maintain while using ranged attacks.")]
     [SerializeField, Min(0f)]
-    private float preferredRangedDistance = 6f;
+    private float preferredRangedDistance = 8f;
     [Tooltip("Allowed distance variation around the preferred ranged distance.")]
     [SerializeField, Min(0f)]
     private float rangedDistanceTolerance = 0.5f;
@@ -41,9 +70,10 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     public float RangedDistanceTolerance => rangedDistanceTolerance;
 
     // MELEE
+    [Header("Melee Combat")]
     [SerializeField, Min(0f)]
-    private float engagementDistance = 2f;
-    public float EngagementDistance => engagementDistance;
+    private float meleeEngagementDistance = 2f;
+    public float MeleeEngagementDistance => meleeEngagementDistance;
     [SerializeField] private MeleeStyleData meleeStyle;
     [SerializeField] private GameObject meleeHitbox;
 
@@ -90,7 +120,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         locomotion = new NPCLocomotion(
             characterController,
             navMeshAgent,
-            engagementDistance
+            meleeEngagementDistance
             );
 
         damageController = new DamageController(
@@ -139,9 +169,133 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
 
     private void OnDisable()
     {
-        ReleaseCurrentRangedPosition();
+        ReleaseCurrentApproachPosition();
         actions?.EndAction();
         stats.Died -= Death;
+    }
+    #endregion
+
+
+    #region TARGETING
+    private void SetCurrentTarget(FactionMember newTarget)
+    {
+        if (currentTargetMember == newTarget)
+            return;
+
+        ReleaseCurrentApproachPosition();
+        currentTargetMember = newTarget;
+        actions?.EndAction();
+    }
+
+    private void RetargetToAttacker(Transform sourceTransform)
+    {
+        if (disposition != NpcDispositionType.Hostile ||
+            sourceTransform == null)
+        {
+            return;
+        }
+
+        FactionMember attacker =
+            sourceTransform.GetComponentInParent<FactionMember>();
+
+        if (!IsHostileTarget(attacker))
+            return;
+
+        if (combatController != null &&
+            currentTargetMember != null &&
+            IsHostileTarget(currentTargetMember))
+        {
+            Vector3 toAttacker =
+                attacker.transform.position - transform.position;
+
+            Vector3 toCurrentTarget =
+                currentTargetMember.transform.position - transform.position;
+
+            toAttacker.y = 0f;
+            toCurrentTarget.y = 0f;
+
+            if (toAttacker.sqrMagnitude > toCurrentTarget.sqrMagnitude)
+                return;
+        }
+
+        SetCurrentTarget(attacker);
+        attackerTargetPriorityTimer = attackerTargetPriorityDuration;
+        SetAwareness(NpcAwareness.Aware);
+    }
+
+    private FactionMember FindClosestHostileTarget()
+    {
+        int hitCount = Physics.OverlapSphereNonAlloc(
+            transform.position,
+            awarenessDistance,
+            targetScanBuffer,
+            ~0,
+            QueryTriggerInteraction.Collide);
+
+        FactionMember closestTarget = null;
+        float closestDistanceSquared = float.MaxValue;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            FactionMember candidate =
+                targetScanBuffer[i].GetComponentInParent<FactionMember>();
+
+            if (!IsValidTarget(candidate, awarenessDistance))
+                continue;
+
+            float distanceSquared =
+                (candidate.transform.position - transform.position).sqrMagnitude;
+
+            if (distanceSquared < closestDistanceSquared)
+            {
+                closestDistanceSquared = distanceSquared;
+                closestTarget = candidate;
+            }
+        }
+
+        return closestTarget;
+    }
+
+    private bool IsMeaningfullyCloser(
+    FactionMember challenger,
+    FactionMember currentTarget)
+    {
+        float challengerDistance =
+            Vector3.Distance(transform.position, challenger.transform.position);
+
+        float currentDistance =
+            Vector3.Distance(transform.position, currentTarget.transform.position);
+
+        return challengerDistance + targetSwitchDistanceAdvantage <
+               currentDistance;
+    }
+
+    private bool IsHostileTarget(FactionMember candidate)
+    {
+        if (candidate == null ||
+            candidate == factionMember ||
+            !factionMember.IsHostileTo(candidate))
+        {
+            return false;
+        }
+
+        EntityStats candidateStats =
+            candidate.GetComponent<EntityStats>();
+
+        return candidateStats == null || !candidateStats.IsDead;
+    }
+
+    private bool IsValidTarget(
+        FactionMember candidate,
+        float maxDistance)
+    {
+        if (!IsHostileTarget(candidate))
+            return false;
+
+        float maxDistanceSquared = maxDistance * maxDistance;
+
+        return (candidate.transform.position - transform.position).sqrMagnitude
+               <= maxDistanceSquared;
     }
     #endregion
 
@@ -198,7 +352,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         {
             if (currentTargetMember != null)
             {
-                ReleaseCurrentRangedPosition();
+                ReleaseCurrentApproachPosition();
                 currentTargetMember = null;
                 actions?.EndAction();
             }
@@ -207,6 +361,10 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
             return;
         }
 
+        attackerTargetPriorityTimer = Mathf.Max(
+            0f,
+            attackerTargetPriorityTimer - Time.deltaTime);
+
         targetScanTimer -= Time.deltaTime;
 
         if (targetScanTimer > 0f)
@@ -214,80 +372,38 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
 
         targetScanTimer = Mathf.Max(0.05f, targetScanInterval);
 
+        float targetRange =
+            Mathf.Max(awarenessDistance, targetRetentionDistance);
+
+        bool currentTargetIsValid =
+            IsValidTarget(currentTargetMember, targetRange) ||
+            (attackerTargetPriorityTimer > 0f &&
+             IsHostileTarget(currentTargetMember));
+
+        FactionMember closestTarget =
+            FindClosestHostileTarget();
+
         FactionMember newTarget =
-            IsValidTarget(currentTargetMember,
-            Mathf.Max(awarenessDistance, targetRetentionDistance))
+            currentTargetIsValid
                 ? currentTargetMember
-                : FindClosestHostileTarget();
+                : closestTarget;
+
+        if (currentTargetIsValid &&
+            closestTarget != null &&
+            closestTarget != currentTargetMember &&
+            attackerTargetPriorityTimer <= 0f &&
+            IsMeaningfullyCloser(closestTarget, currentTargetMember))
+        {
+            newTarget = closestTarget;
+        }
 
         if (newTarget != currentTargetMember)
-        {
-            ReleaseCurrentRangedPosition();
-
-            currentTargetMember = newTarget;
-            actions?.EndAction();
-        }
+            SetCurrentTarget(newTarget);
 
         SetAwareness(
             currentTargetMember != null
                 ? NpcAwareness.Aware
                 : NpcAwareness.Unaware);
-    }
-
-    private FactionMember FindClosestHostileTarget()
-    {
-        int hitCount = Physics.OverlapSphereNonAlloc(
-            transform.position,
-            awarenessDistance,
-            targetScanBuffer,
-            ~0,
-            QueryTriggerInteraction.Collide);
-
-        FactionMember closestTarget = null;
-        float closestDistanceSquared = float.MaxValue;
-
-        for (int i = 0; i < hitCount; i++)
-        {
-            FactionMember candidate =
-                targetScanBuffer[i].GetComponentInParent<FactionMember>();
-
-            if (!IsValidTarget(candidate, awarenessDistance))
-                continue;
-
-            float distanceSquared =
-                (candidate.transform.position - transform.position).sqrMagnitude;
-
-            if (distanceSquared < closestDistanceSquared)
-            {
-                closestDistanceSquared = distanceSquared;
-                closestTarget = candidate;
-            }
-        }
-
-        return closestTarget;
-    }
-
-    private bool IsValidTarget(
-        FactionMember candidate,
-        float maxDistance)
-    {
-        if (candidate == null ||
-            candidate == factionMember ||
-            !factionMember.IsHostileTo(candidate))
-        {
-            return false;
-        }
-
-        EntityStats candidateStats =
-            candidate.GetComponent<EntityStats>();
-
-        if (candidateStats != null && candidateStats.IsDead)
-            return false;
-
-        float maxDistanceSquared = maxDistance * maxDistance;
-
-        return (candidate.transform.position - transform.position).sqrMagnitude
-               <= maxDistanceSquared;
     }
 
     private void SetAwareness(NpcAwareness newAwareness)
@@ -308,11 +424,11 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     #region ENGAGEMENT RANGE
     public void SetEngagementDistance(float distance)
     {
-        engagementDistance = Mathf.Max(0f, distance);
-        locomotion?.SetEngagementDistance(engagementDistance);
+        meleeEngagementDistance = Mathf.Max(0f, distance);
+        locomotion?.SetEngagementDistance(meleeEngagementDistance);
     }
 
-    private void ReleaseCurrentRangedPosition()
+    private void ReleaseCurrentApproachPosition()
     {
         if (currentTargetMember == null)
             return;
@@ -321,6 +437,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
             currentTargetMember.GetComponent<NpcEngagementCoordinator>();
 
         coordinator?.ReleaseRangedPosition(this);
+        coordinator?.ReleaseMeleePosition(this);
     }
     #endregion
 
@@ -328,6 +445,11 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     public void ReceiveDamage(DamageInfo damageInfo)
     {
         damageController.ReceiveDamage(damageInfo);
+
+        if (stats != null && stats.IsDead)
+            return;
+
+        RetargetToAttacker(damageInfo.SourceTransform);
     }
 
     void Death()
@@ -338,7 +460,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     #region DEBUG GIZMOS
     private void OnDrawGizmosSelected()
     {
-        if (engagementDistance <= 0f)
+        if (meleeEngagementDistance <= 0f)
             return;
 
         const int segments = 48;
@@ -349,7 +471,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
 
         Vector3 previousPoint =
             transform.position +
-            new Vector3(engagementDistance, 0f, 0f);
+            new Vector3(meleeEngagementDistance, 0f, 0f);
 
         for (int i = 1; i <= segments; i++)
         {
@@ -358,9 +480,9 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
             Vector3 nextPoint =
                 transform.position +
                 new Vector3(
-                    Mathf.Cos(angle) * engagementDistance,
+                    Mathf.Cos(angle) * meleeEngagementDistance,
                     0f,
-                    Mathf.Sin(angle) * engagementDistance);
+                    Mathf.Sin(angle) * meleeEngagementDistance);
 
             Gizmos.DrawLine(previousPoint, nextPoint);
             previousPoint = nextPoint;

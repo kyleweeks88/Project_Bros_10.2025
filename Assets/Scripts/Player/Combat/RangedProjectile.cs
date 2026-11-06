@@ -115,6 +115,7 @@ public class RangedProjectile : MonoBehaviour
             damageInfo.Amount,
             knockback,
             DamageSourceType.Projectile,
-            sourcePosition);
+            sourcePosition,
+            owner);
     }
 }

@@ -3,6 +3,15 @@ using UnityEngine.AI;
 
 public class HostileNpcDispositionBehavior : NpcDispositionBehavior
 {
+    private const float MeleeSlotSampleRadius = 2f;
+    private const float ApproachWaypointSampleRadius = 2f;
+    private const float ApproachWaypointTargetReevaluationDistance = 1.5f;
+    private const int ApproachWaypointSampleAttempts = 5;
+
+    private bool hasApproachWaypoint;
+    private Vector3 approachWaypoint;
+    private Vector3 targetPositionAtApproachWaypoint;
+
     private const float SightCheckInterval = 0.2f;
     private float sightCheckTimer;
     private bool hasCachedClearShot;
@@ -17,6 +26,8 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
     private Vector3 lastSeenAimPoint;
 
     private bool movingToSearchPoint;
+    private bool hasAngleSearchDestination;
+    private Vector3 angleSearchDestination;
     private float angleSearchTimer;
     private int nextSearchCandidate;
 
@@ -53,8 +64,10 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
             hasCachedClearShot = false;
             hasLastSeenPosition = false;
             movingToSearchPoint = false;
+            hasAngleSearchDestination = false;
             angleSearchTimer = 0f;
             nextSearchCandidate = 0;
+            hasApproachWaypoint = false;
         }
 
         Vector3 toTarget = target.position - npc.transform.position;
@@ -70,29 +83,37 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
                 MeleeAttackType.LightAttack1,
                 out meleeAttackData);
 
-        bool useMelee =
-            hasMeleeAttack &&
-            distanceSquared <=
-                npc.EngagementDistance * npc.EngagementDistance;
-
-        if (useMelee)
+        if (hasMeleeAttack)
         {
-            movingToSearchPoint = false;
-            npc.Locomotion.SetChasing(false);
+            bool hasMeleePosition =
+                TryMoveToMeleePosition(target, out bool reachedMeleePosition);
 
-            if (!npc.Locomotion.FaceTarget(target.position) ||
-                npc.Actions == null ||
-                npc.Actions.IsBusy)
+            if (hasMeleePosition && !reachedMeleePosition)
+                return;
+
+            bool useMelee =
+                hasMeleePosition ||
+                distanceSquared <=
+                    npc.MeleeEngagementDistance * npc.MeleeEngagementDistance;
+
+            if (useMelee)
             {
+                npc.Locomotion.SetChasing(false);
+
+                if (!npc.Locomotion.FaceTarget(target.position) ||
+                    npc.Actions == null ||
+                    npc.Actions.IsBusy)
+                {
+                    return;
+                }
+
+                npc.Actions.TryStartAction(
+                    new NpcMeleeAttackAction(
+                        npc.Actions.Context,
+                        meleeAttackData));
+
                 return;
             }
-
-            npc.Actions.TryStartAction(
-                new NpcMeleeAttackAction(
-                    npc.Actions.Context,
-                    meleeAttackData));
-
-            return;
         }
 
         bool withinRangedDistance =
@@ -105,6 +126,8 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
             sightCheckTimer = 0f;
             hasCachedClearShot = false;
             movingToSearchPoint = false;
+            hasAngleSearchDestination = false;
+            hasApproachWaypoint = false;
             npc.Locomotion.ChaseTarget();
             return;
         }
@@ -130,7 +153,13 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
 
         if (hasCachedClearShot)
         {
+            bool wasSearchingForAngle = hasAngleSearchDestination;
+
             movingToSearchPoint = false;
+            hasAngleSearchDestination = false;
+
+            if (wasSearchingForAngle)
+                hasApproachWaypoint = false;
 
             if (AdjustRangedDistance(target))
                 return;
@@ -201,12 +230,198 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
 
         if (offset.sqrMagnitude <= arrivalTolerance * arrivalTolerance)
         {
+            hasApproachWaypoint = false;
             npc.Locomotion.SetChasing(false);
             return false;
         }
 
-        npc.Locomotion.MoveTo(desiredPosition);
+        MoveTowardsApproachPosition(
+            target,
+            desiredPosition,
+            preferredDistance + npc.AttackApproachPadding);
         return true;
+    }
+
+    private bool TryMoveToMeleePosition(
+        Transform target,
+        out bool reachedPosition)
+    {
+        reachedPosition = false;
+
+        NpcEngagementCoordinator coordinator =
+            target.GetComponent<NpcEngagementCoordinator>();
+
+        if (coordinator == null ||
+            !coordinator.TryGetMeleePosition(
+                npc,
+                npc.MeleeEngagementDistance,
+                out Vector3 desiredPosition))
+        {
+            hasApproachWaypoint = false;
+            return false;
+        }
+
+        if (!NavMesh.SamplePosition(
+                desiredPosition,
+                out NavMeshHit navHit,
+                MeleeSlotSampleRadius,
+                npc.Locomotion.NavigationAreaMask))
+        {
+            hasApproachWaypoint = false;
+            return false;
+        }
+
+        desiredPosition = navHit.position;
+
+        Vector3 offsetToPosition =
+            desiredPosition - npc.transform.position;
+
+        offsetToPosition.y = 0f;
+
+        const float arrivalTolerance = 0.35f;
+
+        if (offsetToPosition.sqrMagnitude <=
+            arrivalTolerance * arrivalTolerance)
+        {
+            hasApproachWaypoint = false;
+            npc.Locomotion.SetChasing(false);
+            reachedPosition = true;
+            return true;
+        }
+
+        MoveTowardsApproachPosition(
+            target,
+            desiredPosition,
+            npc.MeleeEngagementDistance +
+            npc.AttackApproachPadding);
+        return true;
+    }
+
+    private void MoveTowardsApproachPosition(
+        Transform target,
+        Vector3 finalPosition,
+        float directApproachDistance)
+    {
+        Vector3 offsetToTarget =
+            target.position - npc.transform.position;
+
+        offsetToTarget.y = 0f;
+
+        bool shouldZigZag =
+            offsetToTarget.sqrMagnitude >
+            directApproachDistance * directApproachDistance;
+
+        if (shouldZigZag &&
+            TryGetApproachWaypoint(
+                target,
+                finalPosition,
+                out Vector3 waypoint))
+        {
+            npc.Locomotion.MoveTo(waypoint);
+            return;
+        }
+
+        hasApproachWaypoint = false;
+        npc.Locomotion.MoveTo(finalPosition);
+    }
+
+    private bool TryGetApproachWaypoint(
+        Transform target,
+        Vector3 finalPosition,
+        out Vector3 waypoint)
+    {
+        waypoint = default;
+
+        if (hasApproachWaypoint)
+        {
+            Vector3 targetMovement =
+                target.position - targetPositionAtApproachWaypoint;
+
+            targetMovement.y = 0f;
+
+            float reevaluationDistanceSquared =
+                ApproachWaypointTargetReevaluationDistance *
+                ApproachWaypointTargetReevaluationDistance;
+
+            if (targetMovement.sqrMagnitude <= reevaluationDistanceSquared &&
+                !npc.Locomotion.HasReachedMoveDestination)
+            {
+                waypoint = approachWaypoint;
+                return true;
+            }
+
+            hasApproachWaypoint = false;
+        }
+
+        Vector3 directionToFinal =
+            finalPosition - npc.transform.position;
+
+        directionToFinal.y = 0f;
+
+        float distanceToFinal = directionToFinal.magnitude;
+
+        if (distanceToFinal <= 0.5f)
+            return false;
+
+        Vector3 forward = directionToFinal / distanceToFinal;
+        Vector3 lateral = Vector3.Cross(Vector3.up, forward);
+
+        float spacing =
+            Mathf.Max(0.5f, npc.ZigZagWaypointSpacing);
+
+        float maxLateralOffset =
+            Mathf.Max(0f, npc.ZigZagLateralDistance);
+
+        for (int attempt = 0;
+             attempt < ApproachWaypointSampleAttempts;
+             attempt++)
+        {
+            float forwardDistance = Mathf.Min(
+                distanceToFinal * 0.75f,
+                Random.Range(spacing * 0.75f, spacing * 1.25f));
+
+            if (forwardDistance <= 0.5f)
+                continue;
+
+            float lateralOffset = maxLateralOffset > 0f
+                ? Random.Range(-maxLateralOffset, maxLateralOffset)
+                : 0f;
+
+            Vector3 rawCandidate =
+                npc.transform.position +
+                forward * forwardDistance +
+                lateral * lateralOffset;
+
+            if (Vector3.Dot(
+                    finalPosition - rawCandidate,
+                    forward) <= 0.5f)
+            {
+                continue;
+            }
+
+            if (!NavMesh.SamplePosition(
+                    rawCandidate,
+                    out NavMeshHit waypointHit,
+                    ApproachWaypointSampleRadius,
+                    npc.Locomotion.NavigationAreaMask))
+            {
+                continue;
+            }
+
+            Vector3 candidate = waypointHit.position;
+
+            if (!npc.Locomotion.CanReach(candidate))
+                continue;
+
+            approachWaypoint = candidate;
+            targetPositionAtApproachWaypoint = target.position;
+            hasApproachWaypoint = true;
+
+            waypoint = candidate;
+            return true;
+        }
+
+        return false;
     }
 
     public override void OnAwarenessChanged(
@@ -222,6 +437,9 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
 
     public override void OnExit()
     {
+        hasApproachWaypoint = false;
+        hasAngleSearchDestination = false;
+        movingToSearchPoint = false;
         npc.Locomotion?.SetChasing(false);
     }
 
@@ -314,17 +532,54 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
     {
         if (!hasLastSeenPosition)
         {
+            movingToSearchPoint = false;
+            hasAngleSearchDestination = false;
+            hasApproachWaypoint = false;
             npc.Locomotion.ChaseTarget();
             return;
         }
 
-        if (movingToSearchPoint &&
-            !npc.Locomotion.HasReachedMoveDestination)
+        if (hasAngleSearchDestination)
         {
-            return;
+            if (movingToSearchPoint &&
+                !npc.Locomotion.HasReachedMoveDestination)
+            {
+                return;
+            }
+
+            movingToSearchPoint = false;
+
+            Vector3 offsetToSearchPosition =
+                angleSearchDestination - npc.transform.position;
+
+            offsetToSearchPosition.y = 0f;
+
+            if (offsetToSearchPosition.sqrMagnitude <= 0.25f)
+            {
+                hasAngleSearchDestination = false;
+                hasApproachWaypoint = false;
+            }
+            else
+            {
+                float directApproachDistance =
+                    npc.PreferredRangedDistance +
+                    npc.AttackApproachPadding;
+
+                MoveTowardsApproachPosition(
+                    target,
+                    angleSearchDestination,
+                    directApproachDistance);
+
+                movingToSearchPoint = true;
+                return;
+            }
         }
 
-        movingToSearchPoint = false;
+        // A clear-shot ranged slot may have had a cached waypoint. Start a
+        // fresh waypoint chain for angle-search destinations.
+        if (!hasAngleSearchDestination)
+            hasApproachWaypoint = false;
+
         angleSearchTimer -= Time.deltaTime;
 
         if (angleSearchTimer > 0f)
@@ -334,11 +589,23 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
                 target,
                 out Vector3 searchPosition))
         {
-            npc.Locomotion.MoveTo(searchPosition);
+            angleSearchDestination = searchPosition;
+            hasAngleSearchDestination = true;
+
+            float directApproachDistance =
+                npc.PreferredRangedDistance +
+                npc.AttackApproachPadding;
+
+            MoveTowardsApproachPosition(
+                target,
+                angleSearchDestination,
+                directApproachDistance);
+
             movingToSearchPoint = true;
         }
         else
         {
+            hasApproachWaypoint = false;
             npc.Locomotion.ChaseTarget();
         }
 

@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: RangedAttackData
   m_EditorClassIdentifier: Assembly-CSharp::RangedAttackData
   attackName: Energy Beam
-  startupTime: 0.4
+  startupTime: 0.2
   recoveryTime: 0.8
   projectilePrefab: {fileID: 8075384629787258953, guid: 5b02637fa448faf46bedab25850543a2, type: 3}
   projectileSpeed: 20
   maxRange: 10
   projectileClearanceRadius: 0.3
-  damageMultiplier: 0
-  horizontalKnockbackForce: 5
-  verticalKnockbackForce: 0
-  targetVerticalKnockbackDirection: 0
+  damageMultiplier: 1
+  horizontalKnockbackForce: 1.5
+  verticalKnockbackForce: 0.5
+  targetVerticalKnockbackDirection: 1

@@ -74,7 +74,8 @@ public class DamageController
             finalDamage,
             finalKnockback,
             damageInfo.SourceType,
-            damageInfo.SourcePosition);
+            damageInfo.SourcePosition,
+            damageInfo.SourceTransform);
     }
 
     public DamageInfo CalculateOutgoingDamage(

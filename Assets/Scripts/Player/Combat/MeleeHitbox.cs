@@ -86,7 +86,8 @@ public class MeleeHitbox : MonoBehaviour
                 damageInfo.Amount,
                 knockbackForce,
                 damageInfo.SourceType,
-                attackerTransform.position
+                attackerTransform.position,
+                attackerTransform
             );
 
         damageable.ReceiveDamage(finalDamage);

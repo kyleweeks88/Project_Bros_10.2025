@@ -5,17 +5,51 @@ using UnityEngine.AI;
 public class NpcEngagementCoordinator : MonoBehaviour
 {
     #region REFERENCES
+
+    #region MELEE POSITIONS
+    [Header("Melee Positions")]
+    [SerializeField, Min(1)]
+    private int meleeSlotCount = 6;
+
+    [SerializeField, Min(0f)]
+    private float meleeSlotChoiceSlack = 1f;
+
+    [SerializeField, Min(0f)]
+    private float meleeRadiusVariation = 0.35f;
+
+    [SerializeField, Min(0f)]
+    private float meleeTargetMovementReevaluationDistance = 1.5f;
+
+    private float meleeSlotAngleOffset;
+
+    private const float MeleeSlotSampleRadius = 2f;
+
+    private readonly Dictionary<NpcController, MeleeSlotAssignment> meleeSlots =
+        new Dictionary<NpcController, MeleeSlotAssignment>();
+
+    private readonly List<NpcController> staleMeleeRequesters =
+        new List<NpcController>();
+
+    private readonly List<int> availableMeleeSlots =
+        new List<int>();
+
+    private readonly List<int> nearBestMeleeSlots =
+        new List<int>();
+    #endregion
+
+    #region RANGED POSITIONS
+    // RANGED
     [Header("Ranged Positions")]
     [SerializeField, Min(1)]
     private int rangedSlotCount = 8;
 
     [SerializeField, Min(0f)]
-    private float slotChoiceSlack = 2f;
+    private float rangedSlotChoiceSlack = 2f;
 
     [SerializeField, Min(0f)]
-    private float targetMovementReevaluationDistance = 2f;
+    private float rangedTargetMovementReevaluationDistance = 2f;
 
-    private float slotAngleOffset;
+    private float rangedSlotAngleOffset;
 
     private const float RangedSlotSampleRadius = 2f;
 
@@ -28,9 +62,28 @@ public class NpcEngagementCoordinator : MonoBehaviour
     private readonly Dictionary<NpcController, RangedSlotAssignment> rangedSlots =
         new Dictionary<NpcController, RangedSlotAssignment>();
 
-    private readonly List<NpcController> staleRequesters =
+    private readonly List<NpcController> staleRangedRequesters =
         new List<NpcController>();
     #endregion
+
+    #endregion
+
+    private struct MeleeSlotAssignment
+    {
+        public int Slot;
+        public Vector3 TargetPositionAtAssignment;
+        public float DistanceOffset;
+
+        public MeleeSlotAssignment(
+            int slot,
+            Vector3 targetPosition,
+            float distanceOffset)
+        {
+            Slot = slot;
+            TargetPositionAtAssignment = targetPosition;
+            DistanceOffset = distanceOffset;
+        }
+    }
 
     private struct RangedSlotAssignment
     {
@@ -46,8 +99,251 @@ public class NpcEngagementCoordinator : MonoBehaviour
 
     private void Awake()
     {
-        slotAngleOffset = Random.Range(0f, 360f);
+        meleeSlotAngleOffset = Random.Range(0f, 360f);
+        rangedSlotAngleOffset = Random.Range(0f, 360f);
     }
+
+    private Vector3 GetSlotPosition(int slot, float distance)
+    {
+        float angle =
+            rangedSlotAngleOffset + slot * (360f / rangedSlotCount);
+
+        Vector3 direction =
+            Quaternion.AngleAxis(angle, Vector3.up) * Vector3.forward;
+
+        return transform.position +
+               direction * Mathf.Max(0f, distance);
+    }
+
+    #region MELEE
+    public bool TryGetMeleePosition(
+    NpcController requester,
+    float distance,
+    out Vector3 position)
+    {
+        position = default;
+
+        if (requester == null)
+            return false;
+
+        RemoveDestroyedRequesters();
+
+        int slot = GetOrAssignMeleeSlot(requester, distance);
+
+        if (slot < 0)
+            return false;
+
+        if (!meleeSlots.TryGetValue(
+        requester,
+        out MeleeSlotAssignment assignment))
+        {
+            return false;
+        }
+
+        position = GetMeleeSlotPosition(
+            slot,
+            distance,
+            assignment.DistanceOffset);
+
+        return true;
+    }
+
+    private int GetOrAssignMeleeSlot(
+        NpcController requester,
+        float distance)
+    {
+        if (meleeSlots.TryGetValue(
+                requester,
+                out MeleeSlotAssignment existingAssignment) &&
+            existingAssignment.Slot >= 0 &&
+            existingAssignment.Slot < meleeSlotCount)
+        {
+            Vector3 targetMovement =
+                transform.position -
+                existingAssignment.TargetPositionAtAssignment;
+
+            targetMovement.y = 0f;
+
+            float reevaluationDistanceSquared =
+                meleeTargetMovementReevaluationDistance *
+                meleeTargetMovementReevaluationDistance;
+
+            if (targetMovement.sqrMagnitude <= reevaluationDistanceSquared)
+                return existingAssignment.Slot;
+        }
+
+        availableMeleeSlots.Clear();
+
+        int closestReachableSlot = -1;
+        float closestReachableDistanceSquared = float.MaxValue;
+
+        int closestAvailableSlot = -1;
+        float closestAvailableDistanceSquared = float.MaxValue;
+
+        for (int slot = 0; slot < meleeSlotCount; slot++)
+        {
+            if (!TryGetReachableMeleeSlotPosition(
+                    requester,
+                    slot,
+                    distance,
+                    out Vector3 candidatePosition))
+            {
+                continue;
+            }
+
+            Vector3 offset =
+                requester.transform.position - candidatePosition;
+
+            offset.y = 0f;
+
+            float distanceSquared = offset.sqrMagnitude;
+
+            if (distanceSquared < closestReachableDistanceSquared)
+            {
+                closestReachableDistanceSquared = distanceSquared;
+                closestReachableSlot = slot;
+            }
+
+            bool slotIsTaken = false;
+
+            foreach (KeyValuePair<NpcController, MeleeSlotAssignment> assignment
+                     in meleeSlots)
+            {
+                if (assignment.Key != requester &&
+                    assignment.Value.Slot == slot)
+                {
+                    slotIsTaken = true;
+                    break;
+                }
+            }
+
+            if (slotIsTaken)
+                continue;
+
+            availableMeleeSlots.Add(slot);
+
+            if (distanceSquared < closestAvailableDistanceSquared)
+            {
+                closestAvailableDistanceSquared = distanceSquared;
+                closestAvailableSlot = slot;
+            }
+        }
+
+        if (closestReachableSlot < 0)
+            return -1;
+
+        int selectedSlot = closestReachableSlot;
+
+        if (availableMeleeSlots.Count > 0)
+        {
+            float choiceDistance =
+                Mathf.Sqrt(closestAvailableDistanceSquared) +
+                meleeSlotChoiceSlack;
+
+            float choiceDistanceSquared = choiceDistance * choiceDistance;
+
+            nearBestMeleeSlots.Clear();
+
+            foreach (int slot in availableMeleeSlots)
+            {
+                if (!TryGetReachableMeleeSlotPosition(
+                        requester,
+                        slot,
+                        distance,
+                        out Vector3 candidatePosition))
+                {
+                    continue;
+                }
+
+                Vector3 offset =
+                    requester.transform.position - candidatePosition;
+
+                offset.y = 0f;
+
+                if (offset.sqrMagnitude <= choiceDistanceSquared)
+                    nearBestMeleeSlots.Add(slot);
+            }
+
+            if (nearBestMeleeSlots.Count > 0)
+            {
+                selectedSlot = nearBestMeleeSlots[
+                    Random.Range(0, nearBestMeleeSlots.Count)];
+            }
+            else
+            {
+                selectedSlot = closestAvailableSlot;
+            }
+        }
+
+        float distanceOffset =
+            Random.Range(0f, Mathf.Min(meleeRadiusVariation, distance));
+
+        if (!TryGetReachableMeleeSlotPosition(
+                requester,
+                selectedSlot,
+                distance,
+                out _,
+                distanceOffset))
+        {
+            distanceOffset = 0f;
+        }
+
+        meleeSlots[requester] =
+            new MeleeSlotAssignment(
+                selectedSlot,
+                transform.position,
+                distanceOffset);
+
+        return selectedSlot;
+    }
+
+    private bool TryGetReachableMeleeSlotPosition(
+        NpcController requester,
+        int slot,
+        float distance,
+        out Vector3 position,
+        float distanceOffset = 0f)
+    {
+        Vector3 slotPosition =
+            GetMeleeSlotPosition(slot, distance, distanceOffset);
+
+        if (!NavMesh.SamplePosition(
+                slotPosition,
+                out NavMeshHit navHit,
+                MeleeSlotSampleRadius,
+                requester.Locomotion.NavigationAreaMask))
+        {
+            position = default;
+            return false;
+        }
+
+        position = navHit.position;
+        return requester.Locomotion.CanReach(position);
+    }
+
+    private Vector3 GetMeleeSlotPosition(
+        int slot,
+        float distance,
+        float distanceOffset = 0f)
+    {
+        float angle =
+            meleeSlotAngleOffset + slot * (360f / meleeSlotCount);
+
+        Vector3 direction =
+            Quaternion.AngleAxis(angle, Vector3.up) * Vector3.forward;
+
+        float variedDistance =
+            Mathf.Max(0f, distance - distanceOffset);
+
+        return transform.position + direction * variedDistance;
+    }
+
+    public void ReleaseMeleePosition(NpcController requester)
+    {
+        if (requester != null)
+            meleeSlots.Remove(requester);
+    }
+    #endregion
 
     #region RANGED
     private int GetOrAssignRangedSlot(
@@ -67,8 +363,8 @@ public class NpcEngagementCoordinator : MonoBehaviour
             targetMovement.y = 0f;
 
             float reevaluationDistanceSquared =
-                targetMovementReevaluationDistance *
-                targetMovementReevaluationDistance;
+                rangedTargetMovementReevaluationDistance *
+                rangedTargetMovementReevaluationDistance;
 
             if (targetMovement.sqrMagnitude <= reevaluationDistanceSquared)
                 return existingAssignment.Slot;
@@ -143,7 +439,7 @@ public class NpcEngagementCoordinator : MonoBehaviour
         {
             float choiceDistance =
                 Mathf.Sqrt(closestAvailableDistanceSquared) +
-                slotChoiceSlack;
+                rangedSlotChoiceSlack;
 
             float choiceDistanceSquared = choiceDistance * choiceDistance;
 
@@ -228,30 +524,32 @@ public class NpcEngagementCoordinator : MonoBehaviour
     }
     #endregion
 
-    private Vector3 GetSlotPosition(int slot, float distance)
-    {
-        float angle =
-            slotAngleOffset + slot * (360f / rangedSlotCount);
-
-        Vector3 direction =
-            Quaternion.AngleAxis(angle, Vector3.up) * Vector3.forward;
-
-        return transform.position +
-               direction * Mathf.Max(0f, distance);
-    }
-
     private void RemoveDestroyedRequesters()
     {
-        staleRequesters.Clear();
+        // RANGED
+        staleRangedRequesters.Clear();
 
         foreach (KeyValuePair<NpcController, RangedSlotAssignment> assignment
                  in rangedSlots)
         {
             if (assignment.Key == null)
-                staleRequesters.Add(assignment.Key);
+                staleRangedRequesters.Add(assignment.Key);
         }
 
-        for (int i = 0; i < staleRequesters.Count; i++)
-            rangedSlots.Remove(staleRequesters[i]);
+        for (int i = 0; i < staleRangedRequesters.Count; i++)
+            rangedSlots.Remove(staleRangedRequesters[i]);
+
+        // MELEE
+        staleMeleeRequesters.Clear();
+
+        foreach (KeyValuePair<NpcController, MeleeSlotAssignment> assignment
+                 in meleeSlots)
+        {
+            if (assignment.Key == null)
+                staleMeleeRequesters.Add(assignment.Key);
+        }
+
+        for (int i = 0; i < staleMeleeRequesters.Count; i++)
+            meleeSlots.Remove(staleMeleeRequesters[i]);
     }
 }

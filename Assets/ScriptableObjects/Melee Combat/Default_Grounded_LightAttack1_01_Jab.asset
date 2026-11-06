@@ -16,7 +16,7 @@ MonoBehaviour:
   attackType: 2
   startupTime: 0.15
   activeTime: 0.2
-  recoveryTime: 0.15
+  recoveryTime: 0.35
   movementDuration: 0.15
   horizontalMovementDistance: 0.25
   verticalMovementDistance: 0

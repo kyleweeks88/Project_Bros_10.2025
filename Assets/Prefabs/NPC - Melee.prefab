@@ -158,11 +158,11 @@ MonoBehaviour:
   baseMoveSpeed: 1
   baseJumpHeight: 1.5
   maxHealth: 100
-  damageOutput: 10
+  damageOutput: 0
   baseBlockDamageMitigation: 0.5
   baseBlockKnockbackMitigation: 0.75
   baseBlockAngle: 60
-  knockbackResistance: 0
+  knockbackResistance: 1
   maxJuggleCount: 1
 --- !u!114 &5959431390575263039
 MonoBehaviour:
@@ -178,13 +178,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NpcController
   awarenessDistance: 10
   targetRetentionDistance: 20
+  targetSwitchDistanceAdvantage: 2
+  attackerTargetPriorityDuration: 4
   awareness: 1
   disposition: 1
+  attackApproachPadding: 2.5
+  zigZagLateralDistance: 3
+  zigZagWaypointSpacing: 3
   rangedAttackData: {fileID: 0}
   projectileSpawnPoint: {fileID: 0}
   preferredRangedDistance: 6
   rangedDistanceTolerance: 0.5
-  engagementDistance: 1.5
+  meleeEngagementDistance: 2
   meleeStyle: {fileID: 11400000, guid: 12a2d7a8eeb9d4c4e9748e9f0141fa7f, type: 2}
   meleeHitbox: {fileID: 6770812301758484612}
   targetScanInterval: 0.25
@@ -215,9 +220,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0cb13d3137dd8f4cb64e432b168d588, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NpcEngagementCoordinator
+  meleeSlotCount: 6
+  meleeSlotChoiceSlack: 1
+  meleeRadiusVariation: 0.35
+  meleeTargetMovementReevaluationDistance: 1.5
   rangedSlotCount: 8
-  slotChoiceSlack: 6
-  targetMovementReevaluationDistance: 4
+  rangedSlotChoiceSlack: 2
+  rangedTargetMovementReevaluationDistance: 2
 --- !u!1 &6577871457063771953
 GameObject:
   m_ObjectHideFlags: 0

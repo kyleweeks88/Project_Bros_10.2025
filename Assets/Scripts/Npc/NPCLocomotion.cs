@@ -41,7 +41,7 @@ public class NPCLocomotion : IPhysicsMove
     private Vector3 physicsVelocity;
 
     private float groundedVerticalVelocity;
-    private const float PhysicsDeceleration = 20f;
+    private const float PhysicsDeceleration = 40f;
     private const float Gravity = -25f;
     private const float ApexGravitySuspensionDuration = 0.25f;
 
