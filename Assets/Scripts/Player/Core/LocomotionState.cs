@@ -1,5 +1,6 @@
 public enum LocomotionState
 {
     Grounded,
-    Airborne
+    Airborne,
+    Climbing
 }

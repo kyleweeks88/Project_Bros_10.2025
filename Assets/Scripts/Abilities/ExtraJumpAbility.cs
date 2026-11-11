@@ -46,6 +46,11 @@ public class ExtraJumpAbility : PlayerAbility
         ResetJumps();
     }
 
+    public override void OnClimbing()
+    {
+        ResetJumps();
+    }
+
 
     // ============================================================
     // INPUT

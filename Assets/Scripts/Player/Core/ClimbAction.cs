@@ -2,6 +2,11 @@ using UnityEngine;
 
 public class ClimbAction : PlayerAction
 {
+    private Vector3 lastSurfaceNormal;
+    private bool hasLeftGroundWhileClimbing;
+
+    public Vector3 JumpAwayDirection => lastSurfaceNormal;
+
     private readonly ClimbableSurface surface;
 
     private const float ProbeDistance = 0.5f;
@@ -19,12 +24,31 @@ public class ClimbAction : PlayerAction
 
     public override void OnStarted()
     {
+        hasLeftGroundWhileClimbing =
+            !Context.Locomotion.IsTouchingGround;
+
+        lastSurfaceNormal = -Context.Transform.forward;
+        lastSurfaceNormal.y = 0f;
+
+        if (lastSurfaceNormal.sqrMagnitude > 0.001f)
+            lastSurfaceNormal.Normalize();
+
         Context.Locomotion.SetClimbing(true);
         Context.Locomotion.SetRotationLocked(true);
     }
 
     public override void OnUpdate()
     {
+        if (!Context.Locomotion.IsTouchingGround)
+        {
+            hasLeftGroundWhileClimbing = true;
+        }
+        else if (hasLeftGroundWhileClimbing)
+        {
+            IsComplete = true;
+            return;
+        }
+
         ProbeSurface();
     }
 
@@ -33,6 +57,18 @@ public class ClimbAction : PlayerAction
         Context.Locomotion.ClearClimbMovement();
         Context.Locomotion.SetClimbing(false);
         Context.Locomotion.SetRotationLocked(false);
+    }
+
+    public bool CanStart()
+    {
+        return Physics.Raycast(
+            Context.Locomotion.ClimbProbeOrigin,
+            Context.Transform.forward,
+            out RaycastHit hit,
+            ProbeDistance) &&
+            hit.collider.TryGetComponent(
+                out ClimbableSurface hitSurface) &&
+            hitSurface == surface;
     }
 
     private void ProbeSurface()
@@ -50,6 +86,7 @@ public class ClimbAction : PlayerAction
             ProbeDistance))
         {
             Context.Locomotion.ClearClimbMovement();
+            IsComplete = true;
             return;
         }
 
@@ -57,8 +94,15 @@ public class ClimbAction : PlayerAction
             out ClimbableSurface hitSurface))
         {
             Context.Locomotion.ClearClimbMovement();
+            IsComplete = true;
             return;
         }
+
+        lastSurfaceNormal = hit.normal;
+        lastSurfaceNormal.y = 0f;
+
+        if (lastSurfaceNormal.sqrMagnitude > 0.001f)
+            lastSurfaceNormal.Normalize();
 
         Debug.DrawRay(
             origin,

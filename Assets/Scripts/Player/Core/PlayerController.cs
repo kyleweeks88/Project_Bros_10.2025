@@ -145,8 +145,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         input.meleeAttackReleasedEvent += OnMeleeInputReleased;
         actions.ActionEnded += OnActionEnded;
         interaction.Interacted += OnInteracted;
-        locomotion.Landed += abilities.NotifyGrounded;
-        locomotion.Landed += myStats.RefillJuggleCount;
+        locomotion.EnteredGrounded += abilities.NotifyGrounded;
+        locomotion.ClimbingStarted += abilities.NotifyClimbing;
+        locomotion.EnteredGrounded += myStats.RefillJuggleCount;
         myStats.Died += OnDeath;
     }
 
@@ -183,12 +184,11 @@ public class PlayerController : MonoBehaviour, IDamageable
             input.meleeAttackReleasedEvent -= OnMeleeInputReleased;
             actions.ActionEnded -= OnActionEnded;
             interaction.Interacted -= OnInteracted;
-            locomotion.Landed -= abilities.NotifyGrounded;
-            locomotion.Landed -= myStats.RefillJuggleCount;
+            locomotion.EnteredGrounded -= abilities.NotifyGrounded;
+            locomotion.ClimbingStarted -= abilities.NotifyClimbing;
+            locomotion.EnteredGrounded -= myStats.RefillJuggleCount;
             myStats.Died -= OnDeath;
         }
-
-        locomotion?.Dispose();
     }
     #endregion
 
@@ -237,18 +237,17 @@ public class PlayerController : MonoBehaviour, IDamageable
                     actionContext,
                     surface);
 
-            actions.TryStartAction(climbAction);
+            if (!climbAction.CanStart())
+                return;
+
+            if (!actions.TryStartAction(climbAction))
+                return;
 
             Debug.Log(
                 $"PlayerController interacted with " +
                 $"climbable surface: {interactedObject.name}"
             );
 
-            // CHANGE THIS!!! vvvvvvvvvvvvvvvvvv
-            abilities.NotifyGrounded(); // ?????
-            Debug.Log("TEMPORARY CODE WARNING!!!!!!" +
-                "THIS NEEDS TO CHANGE, CLIMB SHOULD NOT RESET" +
-                "JUMPS IN THIS WAY.");
         }
         // NOT A CLIMBABLE SURFACE INTERACTION
         else
@@ -267,33 +266,66 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void OnJumpPressed()
     {
-        if(actions.GetCurrentAction<ClimbAction>()
-            != null)
+        PlayerAction currentAction = actions.CurrentAction;
+
+        if (currentAction is ClimbAction climbAction)
         {
+            Vector3 awayDirection =
+                climbAction.JumpAwayDirection;
+
             actions.EndAction();
+
+            actions.TryStartAction(
+                new JumpAction(
+                    actionContext,
+                    () => locomotion.RequestClimbJump(
+                        awayDirection,
+                        0.5f,
+                        myStats.JumpHeight)));
+
             return;
         }
 
-        MeleeAttackAction currentAttack =
-            actions.GetCurrentAction<MeleeAttackAction>();
-
-        if(currentAttack != null)
+        if (currentAction is MeleeAttackAction meleeAttack)
         {
-            if (!currentAttack.TryCancelBeforeHitbox())
+            if (!meleeAttack.TryCancelBeforeHitbox())
                 return;
 
             actions.EndAction();
+        }
+        else if(currentAction is BlockAction ||
+                currentAction is DodgeAction)
+        {
+            actions.EndAction();
+        }
+        else if(currentAction != null)
+        {
+            // KEEP JUMP FROM INTERRUPTING OTHER ACTIONS
+            return;
         }
 
         // Normal jumping belongs to PlayerLocomotion.
         // If the player is airborne, give ExtraJump a chance to consume this press.
         if (locomotion.IsGrounded)
+        {
+            actions.TryStartAction(
+                new JumpAction(
+                    actionContext,
+                    locomotion.RequestJump));
+
             return;
+        }
 
         ExtraJumpAbility extraJump =
             abilities.GetAbility<ExtraJumpAbility>();
 
-        extraJump?.TryActivate();
+        if (extraJump == null || !extraJump.CanActivate())
+            return;
+
+        actions.TryStartAction(
+            new JumpAction(
+                actionContext,
+                extraJump.TryActivate));
     }
 
     #region MELEE INPUT
