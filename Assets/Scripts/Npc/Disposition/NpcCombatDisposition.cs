@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public class HostileNpcDispositionBehavior : NpcDispositionBehavior
+public abstract class NpcCombatDisposition
 {
-    private const float MeleeSlotSampleRadius = 2f;
+    protected readonly NpcController npc;
+    protected readonly NpcMeleeApproachPlanner meleeApproachPlanner;
+
     private const float ApproachWaypointSampleRadius = 2f;
     private const float ApproachWaypointTargetReevaluationDistance = 1.5f;
     private const int ApproachWaypointSampleAttempts = 5;
@@ -30,91 +32,91 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
     private Vector3 angleSearchDestination;
     private float angleSearchTimer;
     private int nextSearchCandidate;
-
     private Transform trackedTarget;
 
-    public HostileNpcDispositionBehavior(NpcController npc)
-        : base(npc)
-    { 
+    protected NpcCombatDisposition(NpcController npc)
+    {
+        this.npc = npc;
+        meleeApproachPlanner = new NpcMeleeApproachPlanner(npc);
     }
 
-    // WHEN THE NPC ENTERS THE HOSTILE STATE
-    public override void OnEnter()
+    public virtual void OnEnter() { }
+
+    public abstract void OnUpdate();
+
+    protected void PrepareForTarget(Transform target)
     {
-        // CHECK IF THE NPC IS AWARE OF A TARGET
-        // IF SO, SetChasing IS SET TRUE
-        npc.Locomotion?.SetChasing(
-            npc.Awareness == NpcAwareness.Aware);
+        if (target == trackedTarget)
+            return;
+
+        trackedTarget = target;
+        sightCheckTimer = 0f;
+        hasCachedClearShot = false;
+        hasLastSeenPosition = false;
+        movingToSearchPoint = false;
+        hasAngleSearchDestination = false;
+        angleSearchTimer = 0f;
+        nextSearchCandidate = 0;
+        hasApproachWaypoint = false;
     }
 
-    public override void OnUpdate()
+    protected bool TryGetMeleeAttackData(out MeleeAttackData meleeAttackData)
     {
-        if (npc.Awareness != NpcAwareness.Aware)
-            return;
+        meleeAttackData = null;
 
-        Transform target = npc.CurrentTarget;
+        return npc.CombatController != null &&
+               npc.CombatController.TryGetAttackData(
+                   MeleeAttackType.LightAttack1,
+                   out meleeAttackData);
+    }
 
-        if (target == null)
-            return;
+    protected bool UpdateMeleeCombat(
+        Transform target,
+        MeleeAttackData meleeAttackData)
+    {
+        bool hasMeleePosition =
+            TryMoveToMeleePosition(target, out bool reachedMeleePosition);
 
-        if (target != trackedTarget)
-        {
-            trackedTarget = target;
-            sightCheckTimer = 0f;
-            hasCachedClearShot = false;
-            hasLastSeenPosition = false;
-            movingToSearchPoint = false;
-            hasAngleSearchDestination = false;
-            angleSearchTimer = 0f;
-            nextSearchCandidate = 0;
-            hasApproachWaypoint = false;
-        }
+        if (meleeApproachPlanner.IsSearching)
+            return true;
+
+        if (hasMeleePosition && !reachedMeleePosition)
+            return true;
 
         Vector3 toTarget = target.position - npc.transform.position;
         toTarget.y = 0f;
 
-        float distanceSquared = toTarget.sqrMagnitude;
+        bool useMelee =
+            hasMeleePosition ||
+            toTarget.sqrMagnitude <=
+                npc.MeleeEngagementDistance * npc.MeleeEngagementDistance;
 
-        MeleeAttackData meleeAttackData = null;
+        if (!useMelee)
+            return false;
 
-        bool hasMeleeAttack =
-            npc.CombatController != null &&
-            npc.CombatController.TryGetAttackData(
-                MeleeAttackType.LightAttack1,
-                out meleeAttackData);
+        npc.Locomotion.SetChasing(false);
 
-        if (hasMeleeAttack)
+        if (!npc.Locomotion.FaceTarget(target.position) ||
+            npc.Actions == null ||
+            npc.Actions.IsBusy)
         {
-            bool hasMeleePosition =
-                TryMoveToMeleePosition(target, out bool reachedMeleePosition);
-
-            if (hasMeleePosition && !reachedMeleePosition)
-                return;
-
-            bool useMelee =
-                hasMeleePosition ||
-                distanceSquared <=
-                    npc.MeleeEngagementDistance * npc.MeleeEngagementDistance;
-
-            if (useMelee)
-            {
-                npc.Locomotion.SetChasing(false);
-
-                if (!npc.Locomotion.FaceTarget(target.position) ||
-                    npc.Actions == null ||
-                    npc.Actions.IsBusy)
-                {
-                    return;
-                }
-
-                npc.Actions.TryStartAction(
-                    new NpcMeleeAttackAction(
-                        npc.Actions.Context,
-                        meleeAttackData));
-
-                return;
-            }
+            return true;
         }
+
+        npc.Actions.TryStartAction(
+            new NpcMeleeAttackAction(
+                npc.Actions.Context,
+                meleeAttackData));
+
+        return true;
+    }
+
+    protected bool UpdateRangedCombat(Transform target)
+    {
+        Vector3 toTarget = target.position - npc.transform.position;
+        toTarget.y = 0f;
+
+        float distanceSquared = toTarget.sqrMagnitude;
 
         bool withinRangedDistance =
             npc.RangedAttack != null &&
@@ -129,7 +131,7 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
             hasAngleSearchDestination = false;
             hasApproachWaypoint = false;
             npc.Locomotion.ChaseTarget();
-            return;
+            return false;
         }
 
         sightCheckTimer -= Time.deltaTime;
@@ -151,41 +153,72 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
             sightCheckTimer = SightCheckInterval;
         }
 
-        if (hasCachedClearShot)
+        if (!hasCachedClearShot)
         {
-            bool wasSearchingForAngle = hasAngleSearchDestination;
-
-            movingToSearchPoint = false;
-            hasAngleSearchDestination = false;
-
-            if (wasSearchingForAngle)
-                hasApproachWaypoint = false;
-
-            if (AdjustRangedDistance(target))
-                return;
-
-            if (!npc.Locomotion.FaceTarget(target.position) ||
-                npc.Actions == null ||
-                npc.Actions.IsBusy)
-            {
-                return;
-            }
-
-            npc.Actions.TryStartAction(
-                new NpcRangedAttackAction(
-                    npc.Actions.Context,
-                    npc.RangedAttack,
-                    npc.ProjectileSpawnPoint,
-                    target,
-                    cachedRangedAimPoint));
-
-            return;
+            UpdateAngleSearch(target);
+            return false;
         }
 
-        UpdateAngleSearch(target);
+        bool wasSearchingForAngle = hasAngleSearchDestination;
+
+        movingToSearchPoint = false;
+        hasAngleSearchDestination = false;
+
+        if (wasSearchingForAngle)
+            hasApproachWaypoint = false;
+
+        if (AdjustRangedDistance(target))
+            return false;
+
+        if (!npc.Locomotion.FaceTarget(target.position) ||
+            npc.Actions == null ||
+            npc.Actions.IsBusy)
+        {
+            return false;
+        }
+
+        return npc.Actions.TryStartAction(
+            new NpcRangedAttackAction(
+                npc.Actions.Context,
+                npc.RangedAttack,
+                npc.ProjectileSpawnPoint,
+                target,
+                cachedRangedAimPoint));
     }
 
-    private bool AdjustRangedDistance(Transform target)
+    private void ResetCombatState()
+    {
+        meleeApproachPlanner.Reset();
+        hasApproachWaypoint = false;
+        hasAngleSearchDestination = false;
+        movingToSearchPoint = false;
+        hasCachedClearShot = false;
+        hasLastSeenPosition = false;
+        trackedTarget = null;
+        sightCheckTimer = 0f;
+        angleSearchTimer = 0f;
+        nextSearchCandidate = 0;
+    }
+
+    public virtual void OnTargetChanged()
+    {
+        ResetCombatState();
+    }
+
+    public virtual void OnAwarenessChanged(
+        NpcAwareness previousAwareness,
+        NpcAwareness newAwareness)
+    {
+        if (newAwareness == NpcAwareness.Unaware)
+            ResetCombatState();
+    }
+
+    public virtual void OnExit()
+    {
+        ResetCombatState();
+    }
+
+    protected bool AdjustRangedDistance(Transform target)
     {
         float preferredDistance =
             Mathf.Max(0.1f, npc.PreferredRangedDistance);
@@ -246,46 +279,19 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
         Transform target,
         out bool reachedPosition)
     {
-        reachedPosition = false;
-
-        NpcEngagementCoordinator coordinator =
-            target.GetComponent<NpcEngagementCoordinator>();
-
-        if (coordinator == null ||
-            !coordinator.TryGetMeleePosition(
-                npc,
-                npc.MeleeEngagementDistance,
-                out Vector3 desiredPosition))
+        if (!meleeApproachPlanner.TryGetMeleePosition(
+                target,
+                out Vector3 desiredPosition,
+                out reachedPosition))
         {
             hasApproachWaypoint = false;
             return false;
         }
 
-        if (!NavMesh.SamplePosition(
-                desiredPosition,
-                out NavMeshHit navHit,
-                MeleeSlotSampleRadius,
-                npc.Locomotion.NavigationAreaMask))
-        {
-            hasApproachWaypoint = false;
-            return false;
-        }
-
-        desiredPosition = navHit.position;
-
-        Vector3 offsetToPosition =
-            desiredPosition - npc.transform.position;
-
-        offsetToPosition.y = 0f;
-
-        const float arrivalTolerance = 0.35f;
-
-        if (offsetToPosition.sqrMagnitude <=
-            arrivalTolerance * arrivalTolerance)
+        if (reachedPosition)
         {
             hasApproachWaypoint = false;
             npc.Locomotion.SetChasing(false);
-            reachedPosition = true;
             return true;
         }
 
@@ -422,25 +428,6 @@ public class HostileNpcDispositionBehavior : NpcDispositionBehavior
         }
 
         return false;
-    }
-
-    public override void OnAwarenessChanged(
-        NpcAwareness previousAwareness,
-        NpcAwareness newAwareness)
-    {
-        npc.Locomotion?.SetChasing(
-            newAwareness == NpcAwareness.Aware);
-
-        if (newAwareness == NpcAwareness.Unaware)
-            npc.Actions?.EndAction();
-    }
-
-    public override void OnExit()
-    {
-        hasApproachWaypoint = false;
-        hasAngleSearchDestination = false;
-        movingToSearchPoint = false;
-        npc.Locomotion?.SetChasing(false);
     }
 
     private bool TryGetVisibleAimPoint(

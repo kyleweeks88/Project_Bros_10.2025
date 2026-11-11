@@ -21,6 +21,11 @@ public class RangedAttackExecution
     private float timer;
 
     public bool IsComplete => phase == Phase.Complete;
+    public bool IsInStartup => phase == Phase.Startup;
+    public float StartupProgress =>
+        phase != Phase.Startup || attackData.StartupTime <= 0f
+            ? 1f
+            : Mathf.Clamp01(timer / attackData.StartupTime);
 
     public RangedAttackExecution(
         RangedAttackData attackData,

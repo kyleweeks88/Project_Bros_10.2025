@@ -99,7 +99,7 @@ public class MeleeHitbox : MonoBehaviour
         Debug.Log(
             $"Melee hit {other.gameObject.name} | " +
             $"Power: {finalDamage.Amount:F2} | " +
-            $"Knockback: {finalDamage.KnockbackForce}"
+            $"Knockback: {finalDamage.KnockbackForce.magnitude}"
         );
     }
 }

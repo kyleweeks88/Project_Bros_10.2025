@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class EntityStats : MonoBehaviour
 {
+    #region REFERENCES
+
     [Header("Movement")]
     [SerializeField] private float baseMoveSpeed = 1.0f;
     private float moveSpeedModifier;
@@ -20,7 +22,9 @@ public class EntityStats : MonoBehaviour
 
     [Header("Combat")]
     [SerializeField] private float damageOutput = 10f;
+
     #region BLOCKING VALUES
+    [Header("Blocking")]
     [SerializeField, Range(0f, 1f)]
     private float baseBlockDamageMitigation = 0.5f;
     private float blockDamageMitigationModifier;
@@ -48,15 +52,44 @@ public class EntityStats : MonoBehaviour
             360f);
     #endregion
 
+    #region KNOCKBACK VALUES
+    [Header("Knockback")]
+    [SerializeField, Range(1f, 10f)] 
+    private float knockbackResistance = 1f;
+    [SerializeField, Min(0f)]
+    private float baseKnockbackThreshold = 0f;
+    [Tooltip("Seconds after threshold loss before refill begins.")]
+    [SerializeField, Min(0f)]
+    private float knockbackThresholdRefillDelay = 1f;
+    [Tooltip("Knockback threshold restored per second.")]
+    [SerializeField, Min(0f)]
+    private float knockbackThresholdRefillRate = 10f;
+    private float knockbackThresholdModifier;
+    private float knockbackThresholdRefillTimer;
+
+    public float KnockbackResistance =>
+        Mathf.Clamp(knockbackResistance, 1f, 10f);
+
+    public float MaxKnockbackThreshold =>
+        Mathf.Max(
+            0f,
+            baseKnockbackThreshold * (1f + knockbackThresholdModifier));
+
+    public float CurrentKnockbackThreshold { get; private set; }
+    public float KnockbackThresholdFill =>
+        MaxKnockbackThreshold <= 0f
+            ? 1f
+            : Mathf.Clamp01(
+                CurrentKnockbackThreshold / MaxKnockbackThreshold);
+    #endregion
+
     [Header("Various")]
-    [SerializeField] private float knockbackResistance = 0f;
     [SerializeField] private int maxJuggleCount = 1;
     private int juggleCount;
 
 
     public int JuggleCount => juggleCount;
     public int MaxJuggleCount => maxJuggleCount;
-    public float KnockbackResistance => knockbackResistance;
     public float MaxHealth => maxHealth;
     public float CurrentHealth { get; private set; }
     public float DamageOutput => damageOutput;
@@ -66,11 +99,40 @@ public class EntityStats : MonoBehaviour
     public event Action<float> DamageTaken;
     public event Action Died;
 
+    #endregion
+
+
+    #region LIFECYCLE
+
     private void Awake()
     {
         CurrentHealth = MaxHealth;
+        CurrentKnockbackThreshold = MaxKnockbackThreshold;
         juggleCount = Mathf.Max(0, maxJuggleCount);
     }
+
+    private void Update()
+    {
+        if (CurrentKnockbackThreshold >= MaxKnockbackThreshold)
+            return;
+
+        if (knockbackThresholdRefillTimer > 0f)
+        {
+            knockbackThresholdRefillTimer = Mathf.Max(
+                0f,
+                knockbackThresholdRefillTimer - Time.deltaTime);
+
+            return;
+        }
+
+        CurrentKnockbackThreshold = Mathf.MoveTowards(
+            CurrentKnockbackThreshold,
+            MaxKnockbackThreshold,
+            knockbackThresholdRefillRate * Time.deltaTime);
+    }
+
+    #endregion
+
 
     public bool ApplyUpgrade(EntityStatUpgradeData upgradeData)
     {
@@ -99,10 +161,69 @@ public class EntityStats : MonoBehaviour
                 AddBlockAngleModifier(upgradeData.PercentageIncrease);
                 return true;
 
+            case EntityStatUpgradeType.KnockbackThreshold:
+                AddKnockbackThresholdModifier(upgradeData.PercentageIncrease);
+                return true;
+
             default:
                 return false;
         }
     }
+
+    #region KNOCKBACK
+    public bool ShouldApplyKnockback(float knockbackForceMagnitude)
+    {
+        if (knockbackForceMagnitude <= 0.001f)
+            return false;
+
+        float maxThreshold = MaxKnockbackThreshold;
+
+        // A zero maximum keeps the existing unrestricted knockback behavior.
+        if (maxThreshold <= 0f)
+            return true;
+
+        bool isRefilling =
+            CurrentKnockbackThreshold < maxThreshold &&
+            knockbackThresholdRefillTimer <= 0f;
+
+        // During refill, hits still apply knockback but leave the meter alone.
+        if (isRefilling)
+            return true;
+
+        // The meter is empty and waiting for its refill delay.
+        // Keep applying knockback without restarting the delay.
+        if (CurrentKnockbackThreshold <= 0f)
+            return true;
+
+        knockbackThresholdRefillTimer =
+            knockbackThresholdRefillDelay;
+
+        CurrentKnockbackThreshold = Mathf.Max(
+            0f,
+            CurrentKnockbackThreshold - knockbackForceMagnitude);
+
+        // The hit that empties the meter applies knockback.
+        return CurrentKnockbackThreshold <= 0f;
+    }
+
+    public void AddKnockbackThresholdModifier(float percentageIncrease)
+    {
+        knockbackThresholdModifier += percentageIncrease / 100f;
+
+        CurrentKnockbackThreshold = Mathf.Min(
+            CurrentKnockbackThreshold,
+            MaxKnockbackThreshold);
+    }
+
+    public void RemoveKnockbackThresholdModifier(float percentageIncrease)
+    {
+        knockbackThresholdModifier -= percentageIncrease / 100f;
+
+        CurrentKnockbackThreshold = Mathf.Min(
+            CurrentKnockbackThreshold,
+            MaxKnockbackThreshold);
+    }
+    #endregion
 
     #region BLOCKING
     public void AddBlockDamageMitigationModifier(float percentageIncrease)

@@ -72,16 +72,22 @@ public class NpcEngagementCoordinator : MonoBehaviour
     {
         public int Slot;
         public Vector3 TargetPositionAtAssignment;
+        public Vector3 TargetForwardAtAssignment;
         public float DistanceOffset;
+        public NpcMeleeApproachPreference Preference;
 
         public MeleeSlotAssignment(
             int slot,
             Vector3 targetPosition,
-            float distanceOffset)
+            Vector3 targetForward,
+            float distanceOffset,
+            NpcMeleeApproachPreference preference)
         {
             Slot = slot;
             TargetPositionAtAssignment = targetPosition;
+            TargetForwardAtAssignment = targetForward;
             DistanceOffset = distanceOffset;
+            Preference = preference;
         }
     }
 
@@ -117,9 +123,11 @@ public class NpcEngagementCoordinator : MonoBehaviour
 
     #region MELEE
     public bool TryGetMeleePosition(
-    NpcController requester,
-    float distance,
-    out Vector3 position)
+        NpcController requester,
+        float distance,
+        NpcMeleeApproachPreference preference,
+        bool requireAvailableSlot,
+        out Vector3 position)
     {
         position = default;
 
@@ -128,7 +136,11 @@ public class NpcEngagementCoordinator : MonoBehaviour
 
         RemoveDestroyedRequesters();
 
-        int slot = GetOrAssignMeleeSlot(requester, distance);
+        int slot = GetOrAssignMeleeSlot(
+            requester,
+            distance,
+            preference,
+            requireAvailableSlot);
 
         if (slot < 0)
             return false;
@@ -150,13 +162,16 @@ public class NpcEngagementCoordinator : MonoBehaviour
 
     private int GetOrAssignMeleeSlot(
         NpcController requester,
-        float distance)
+        float distance,
+        NpcMeleeApproachPreference preference,
+        bool requireAvailableSlot)
     {
         if (meleeSlots.TryGetValue(
                 requester,
                 out MeleeSlotAssignment existingAssignment) &&
             existingAssignment.Slot >= 0 &&
-            existingAssignment.Slot < meleeSlotCount)
+            existingAssignment.Slot < meleeSlotCount &&
+            existingAssignment.Preference == preference)
         {
             Vector3 targetMovement =
                 transform.position -
@@ -168,9 +183,26 @@ public class NpcEngagementCoordinator : MonoBehaviour
                 meleeTargetMovementReevaluationDistance *
                 meleeTargetMovementReevaluationDistance;
 
-            if (targetMovement.sqrMagnitude <= reevaluationDistanceSquared)
+            bool targetHasNotTurnedMuch =
+                preference == NpcMeleeApproachPreference.Any ||
+                Vector3.Angle(
+                    GetFlatForward(existingAssignment.TargetForwardAtAssignment),
+                    GetFlatForward(transform.forward)) <= 25f;
+
+            Vector3 existingPosition = GetMeleeSlotPosition(
+                existingAssignment.Slot,
+                distance,
+                existingAssignment.DistanceOffset);
+
+            if (targetMovement.sqrMagnitude <= reevaluationDistanceSquared &&
+                targetHasNotTurnedMuch &&
+                IsPreferredMeleePosition(existingPosition, preference))
+            {
                 return existingAssignment.Slot;
+            }
         }
+
+        meleeSlots.Remove(requester);
 
         availableMeleeSlots.Clear();
 
@@ -190,6 +222,9 @@ public class NpcEngagementCoordinator : MonoBehaviour
             {
                 continue;
             }
+
+            if (!IsPreferredMeleePosition(candidatePosition, preference))
+                continue;
 
             Vector3 offset =
                 requester.transform.position - candidatePosition;
@@ -229,7 +264,8 @@ public class NpcEngagementCoordinator : MonoBehaviour
             }
         }
 
-        if (closestReachableSlot < 0)
+        if (closestReachableSlot < 0 ||
+            (requireAvailableSlot && availableMeleeSlots.Count == 0))
             return -1;
 
         int selectedSlot = closestReachableSlot;
@@ -292,9 +328,56 @@ public class NpcEngagementCoordinator : MonoBehaviour
             new MeleeSlotAssignment(
                 selectedSlot,
                 transform.position,
-                distanceOffset);
+                GetFlatForward(transform.forward),
+                distanceOffset,
+                preference);
 
         return selectedSlot;
+    }
+
+    private bool IsPreferredMeleePosition(
+        Vector3 position,
+        NpcMeleeApproachPreference preference)
+    {
+        if (preference == NpcMeleeApproachPreference.Any)
+            return true;
+
+        Vector3 directionToPosition = position - transform.position;
+        directionToPosition.y = 0f;
+
+        Vector3 targetForward = GetFlatForward(transform.forward);
+
+        if (directionToPosition.sqrMagnitude <= 0.001f ||
+            targetForward.sqrMagnitude <= 0.001f)
+        {
+            return false;
+        }
+
+        float alignment = Vector3.Dot(
+            targetForward,
+            directionToPosition.normalized);
+
+        switch (preference)
+        {
+            case NpcMeleeApproachPreference.Front:
+                return alignment >= 0.5f;
+
+            case NpcMeleeApproachPreference.Flank:
+                return alignment < 0.5f;
+
+            default:
+                return true;
+        }
+    }
+
+    private static Vector3 GetFlatForward(Vector3 forward)
+    {
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude > 0.001f)
+            forward.Normalize();
+
+        return forward;
     }
 
     private bool TryGetReachableMeleeSlotPosition(

@@ -12,6 +12,12 @@ public class NpcRangedAttackAction : NpcAction
     public override NpcActionType ActionType =>
         NpcActionType.RangedAttack;
 
+    public bool IsInStartup =>
+        execution != null && execution.IsInStartup;
+
+    public float StartupProgress =>
+        execution != null ? execution.StartupProgress : 0f;
+
     public NpcRangedAttackAction(
         NpcActionContext context,
         RangedAttackData attackData,

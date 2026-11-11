@@ -1,7 +1,11 @@
 using UnityEngine;
+using System;
 
 public class DamageController
 {
+    public event Action KnockbackActionCancelRequested;
+    public event Action RagdollRequested;
+
     private bool isInvulnerable;
     public bool IsInvulnerable => isInvulnerable;
 
@@ -21,7 +25,7 @@ public class DamageController
         Transform defenderTransform = null,
         bool isBlocking = false)
     {
-        if(isInvulnerable)
+        if (isInvulnerable)
         {
             Debug.Log("Incoming damage ignored during Dodge.");
             return;
@@ -31,11 +35,27 @@ public class DamageController
             CalculateIncomingDamage(
                 damageInfo,
                 defenderTransform,
-                isBlocking);
+                isBlocking,
+                out bool poiseBroken,
+                out bool shouldCancelAction,
+                out bool shouldRagdoll);
 
         stats.TakeDamage(finalDamage.Amount);
 
-        if (stats.IsDead) return;
+        if (stats.IsDead)
+            return;
+
+        if (!poiseBroken ||
+            finalDamage.KnockbackForce.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        if (shouldCancelAction)
+            KnockbackActionCancelRequested?.Invoke();
+
+        if(shouldRagdoll)
+            RagdollRequested?.Invoke();
 
         physicsMove.ApplyKnockback(
             finalDamage.KnockbackForce);
@@ -43,13 +63,13 @@ public class DamageController
 
     public DamageInfo CalculateIncomingDamage(
         DamageInfo damageInfo,
-        Transform defenderTransform = null,
-        bool isBlocking = false)
+        Transform defenderTransform,
+        bool isBlocking,
+        out bool poiseBroken,
+        out bool shouldCancelAction,
+        out bool shouldRagdoll)
     {
         float finalDamage = damageInfo.Amount;
-
-        float knockbackMultiplier =
-            1f - stats.KnockbackResistance;
 
         bool blockIsEffective =
             IsBlockEffective(
@@ -57,18 +77,56 @@ public class DamageController
                 defenderTransform,
                 isBlocking);
 
+        float thresholdImpact =
+            damageInfo.KnockbackForce.magnitude;
+
         if (blockIsEffective)
         {
             finalDamage *=
                 1f - stats.BlockDamageMitigation;
 
-            knockbackMultiplier *=
+            // Blocking reduces threshold depletion only
+            thresholdImpact *=
                 1f - stats.BlockKnockbackMitigation;
         }
 
+        // Poise is checked against block-mitigated impact.
+        poiseBroken =
+            stats.ShouldApplyKnockback(thresholdImpact);
+
+        float resistance = stats.KnockbackResistance;
+        float incomingMagnitude =
+            damageInfo.KnockbackForce.magnitude;
+
+        float knockbackMultiplier;
+
+        shouldCancelAction = false;
+        shouldRagdoll = false;
+
+        if(incomingMagnitude <= resistance * 0.5f)
+        {
+            knockbackMultiplier = 0f;
+        }
+        else if(incomingMagnitude <= resistance)
+        {
+            knockbackMultiplier = 0.5f;
+        }
+        else
+        {
+            knockbackMultiplier = 1f;
+            shouldCancelAction = true;
+
+            if(incomingMagnitude > resistance * 2f &&
+                incomingMagnitude >= 10f)
+            {
+                shouldRagdoll = true;
+            }
+        }
+
+        // Resistance selects a tier; it no longer
+        // continuously scales force.
         Vector3 finalKnockback =
-            damageInfo.KnockbackForce *
-            knockbackMultiplier;
+            damageInfo.KnockbackForce * knockbackMultiplier;
 
         return new DamageInfo(
             finalDamage,

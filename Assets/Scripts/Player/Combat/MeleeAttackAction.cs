@@ -231,9 +231,9 @@ public class MeleeAttackAction : PlayerAction
         if (attackReleased ||
             chargeTimer >= attackData.MaxChargeTime)
         {
-            Debug.Log(
-                $"Charge Released: {chargeTimer:F2}s"
-            );
+            //Debug.Log(
+            //    $"Charge Released: {chargeTimer:F2}s"
+            //);
 
             chargeTimer = 0f;
             isCharging = false;
@@ -252,10 +252,10 @@ public class MeleeAttackAction : PlayerAction
         {
             IsComboWindowOpen = true;
 
-            Debug.Log(
-                $"COMBO WINDOW OPEN:" +
-                $"{attackData.AttackType}"
-                );
+            //Debug.Log(
+            //    $"COMBO WINDOW OPEN:" +
+            //    $"{attackData.AttackType}"
+            //    );
         }
 
         // IF THE PLAYER BUFFERED THE NEXT ATTACK,

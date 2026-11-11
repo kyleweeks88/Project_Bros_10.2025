@@ -9,6 +9,12 @@ public class NpcMeleeAttackAction : NpcAction
     public override NpcActionType ActionType =>
         NpcActionType.MeleeAttack;
 
+    public bool IsInStartup =>
+        execution != null && execution.IsInStartup;
+
+    public float StartupProgress =>
+        execution != null ? execution.StartupProgress : 0f;
+
     public NpcMeleeAttackAction(
         NpcActionContext context,
         MeleeAttackData attackData)

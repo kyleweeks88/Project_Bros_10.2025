@@ -87,10 +87,10 @@ public class PlayerCombatController : IMeleeCombat
 
         currentAirborneAttack = attack;
 
-        Debug.Log(
-            $"Started airborne {attackType}: " +
-            $"{currentAirborneAttack.name}"
-            );
+        //Debug.Log(
+        //    $"Started airborne {attackType}: " +
+        //    $"{currentAirborneAttack.name}"
+        //    );
 
         return true;
     }
