@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class MeleeCombatController
+public class PlayerCombatController : IMeleeCombat
 {
     private readonly GameObject meleeHitbox;
     private readonly MeleeHitbox hitbox;
@@ -46,7 +46,7 @@ public class MeleeCombatController
         }
     }
 
-    public MeleeCombatController(
+    public PlayerCombatController(
         GameObject meleeHitbox,
         Transform attackTransform)
     {
@@ -87,10 +87,10 @@ public class MeleeCombatController
 
         currentAirborneAttack = attack;
 
-        Debug.Log(
-            $"Started airborne {attackType}: " +
-            $"{currentAirborneAttack.name}"
-            );
+        //Debug.Log(
+        //    $"Started airborne {attackType}: " +
+        //    $"{currentAirborneAttack.name}"
+        //    );
 
         return true;
     }

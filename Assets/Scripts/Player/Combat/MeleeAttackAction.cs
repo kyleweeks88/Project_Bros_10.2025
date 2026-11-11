@@ -17,26 +17,19 @@ public class MeleeAttackAction : PlayerAction
     private bool wasCancelled;
     public bool WasCancelled => wasCancelled;
     public bool CanCancelBeforeHitbox =>
-        phase == AttackPhase.Charging ||
-        (phase == AttackPhase.Startup &&
-        timer < attackData.StartupTime);
+        isCharging ||
+        (execution != null && execution.CanCancelBeforeHitbox);
     #endregion
 
     #region ATTACK PHASE STUFF
-    private enum AttackPhase
-    {
-        Charging,
-        Startup,
-        Active,
-        Recovery
-    }
+    private MeleeAttackExecution execution;
 
-    private AttackPhase phase;
-    private float timer;
+    private bool isCharging;
+    private float chargeTimer;
     private bool attackReleased;
 
     public bool IsRecovering =>
-    phase == AttackPhase.Recovery;
+    execution != null && execution.IsRecovering;
     #endregion
 
     #region COMBO STUFF
@@ -44,10 +37,10 @@ public class MeleeAttackAction : PlayerAction
     {
         get
         {
-            if (phase != AttackPhase.Recovery)
+            if (execution == null || !execution.IsRecovering)
                 return false;
 
-            return timer >=
+            return execution.RecoveryElapsed >=
                 attackData.ComboWindowStart -
                 attackData.InputBufferTime;
         }
@@ -125,9 +118,21 @@ public class MeleeAttackAction : PlayerAction
         hasPendingAttackMovement = false;
         pendingAttackUsesApexHangTime = false;
 
+        isCharging = attackData.CanCharge;
         chargePercent = 0f;
-        timer = 0f;
+        chargeTimer = 0f;
         attackReleased = false;
+
+        execution = new MeleeAttackExecution(
+            attackData,
+            Context.MeleeCombat,
+            Context.DamageController,
+            Context.Transform,
+            () => AttackMultiplier,
+            ApplyAttackMovement,
+            OnAttackConnected
+            );
+
         IsComplete = false;
         IsComboWindowOpen = false;
         comboInputBuffered = false;
@@ -151,17 +156,13 @@ public class MeleeAttackAction : PlayerAction
                 );
         }
 
-        if (attackData.CanCharge)
+        if (isCharging)
         {
-            phase = AttackPhase.Charging;
-
-            Debug.Log(
-                $"Charging {attackData.AttackType}"
-            );
+            Debug.Log($"Charging {attackData.AttackType}");
         }
         else
         {
-            phase = AttackPhase.Startup;
+            execution.Start();
 
             Debug.Log(
                 $"Melee Attack Started: {attackData.AttackType}"
@@ -171,7 +172,7 @@ public class MeleeAttackAction : PlayerAction
 
     public void ReleaseAttack()
     {
-        if (phase != AttackPhase.Charging)
+        if (!isCharging)
             return;
 
         attackReleased = true;
@@ -200,110 +201,61 @@ public class MeleeAttackAction : PlayerAction
         Debug.Log(
             $"Melee Attack Ended: {attackData.AttackType}"
         );
+
+        execution?.End();
     }
 
     public override void OnUpdate()
     {
-        timer += Time.deltaTime;
-
-        switch (phase)
+        if (isCharging)
         {
-            case AttackPhase.Charging:
-                UpdateCharging();
-                break;
-
-            case AttackPhase.Startup:
-                UpdateStartup();
-                break;
-
-            case AttackPhase.Active:
-                UpdateActive();
-                break;
-
-            case AttackPhase.Recovery:
-                UpdateRecovery();
-                break;
+            UpdateCharging();
+            return;
         }
+
+        execution?.Update();
+        UpdateRecovery();
+
+        if (execution != null && execution.IsComplete)
+            IsComplete = true;
     }
 
     private void UpdateCharging()
     {
+        chargeTimer += Time.deltaTime;
+
         chargePercent = Mathf.Clamp01(
-        timer / attackData.MaxChargeTime
+            chargeTimer / attackData.MaxChargeTime
         );
 
         if (attackReleased ||
-            timer >= attackData.MaxChargeTime)
+            chargeTimer >= attackData.MaxChargeTime)
         {
-            Debug.Log(
-                $"Charge Released: {timer:F2}s"
-            );
+            //Debug.Log(
+            //    $"Charge Released: {chargeTimer:F2}s"
+            //);
 
-            timer = 0f;
-            phase = AttackPhase.Startup;
+            chargeTimer = 0f;
+            isCharging = false;
+            execution.Start();
         }
-    }
-
-    private void UpdateStartup()
-    {
-        if (timer < attackData.StartupTime)
-            return;
-
-        ApplyAttackMovement();
-
-        DamageInfo damageInfo =
-            Context.DamageController.CalculateOutgoingDamage(
-                AttackMultiplier,
-                Vector3.zero,
-                DamageSourceType.Melee,
-                Context.Transform.position
-                );
-
-        Context.MeleeCombat.SetHitboxDamage(
-            damageInfo,
-            attackData.HorizontalKnockbackForce,
-            attackData.VerticalKnockbackForce,
-            attackData.TargetVerticalKnockbackDirection,
-            OnAttackConnected
-        );
-
-        Context.MeleeCombat.SetHitboxActive(true);
-
-        phase = AttackPhase.Active;
-        timer = 0f;
-
-        if (attackData.CanCharge)
-        {
-            Debug.Log(
-            $"Melee Hitbox ACTIVE | " +
-            $"Charge: {chargePercent:P0} | " +
-            $"Power: {AttackMultiplier:F2}"
-            );  
-        }
-    }
-
-    private void UpdateActive()
-    {
-        if (timer < attackData.ActiveTime)
-            return;
-
-        timer = 0f;
-        phase = AttackPhase.Recovery;
-
-        Context.MeleeCombat.SetHitboxActive(false);
     }
 
     private void UpdateRecovery()
     {
-        if(!IsComboWindowOpen &&
-            timer >= attackData.ComboWindowStart)
+        if (execution == null || !execution.IsRecovering)
+            return;
+
+        if (!IsComboWindowOpen &&
+            execution.RecoveryElapsed >=
+            attackData.ComboWindowStart)
         {
             IsComboWindowOpen = true;
 
-            Debug.Log(
-                $"COMBO WINDOW OPEN:" +
-                $"{attackData.AttackType}"
-                );
+            //Debug.Log(
+            //    $"COMBO WINDOW OPEN:" +
+            //    $"{attackData.AttackType}"
+            //    );
         }
 
         // IF THE PLAYER BUFFERED THE NEXT ATTACK,
@@ -316,14 +268,9 @@ public class MeleeAttackAction : PlayerAction
                 $"{attackData.AttackType}"
                 );
 
+            execution.CompleteRecovery();
             IsComplete = true;
             return;
-        }
-
-        // NO BUFFERED INPUT, SO FINISH THE FULL RECOVERY
-        if (timer >= attackData.RecoveryTime)
-        {
-            IsComplete = true;
         }
     }
 

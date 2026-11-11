@@ -86,7 +86,8 @@ public class MeleeHitbox : MonoBehaviour
                 damageInfo.Amount,
                 knockbackForce,
                 damageInfo.SourceType,
-                attackerTransform.position
+                attackerTransform.position,
+                attackerTransform
             );
 
         damageable.ReceiveDamage(finalDamage);
@@ -98,7 +99,7 @@ public class MeleeHitbox : MonoBehaviour
         Debug.Log(
             $"Melee hit {other.gameObject.name} | " +
             $"Power: {finalDamage.Amount:F2} | " +
-            $"Knockback: {finalDamage.KnockbackForce}"
+            $"Knockback: {finalDamage.KnockbackForce.magnitude}"
         );
     }
 }

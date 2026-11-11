@@ -34,6 +34,13 @@ public class TargetLockController
         if (!IsLocked)
             return;
 
+        if (currentTarget is UnityEngine.Object unityTarget &&
+            unityTarget == null)
+        {
+            Unlock();
+            return;
+        }
+
         Transform targetTransform =
             currentTarget.TargetTransform;
 

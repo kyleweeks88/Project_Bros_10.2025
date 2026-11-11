@@ -6,7 +6,8 @@ public enum EntityStatUpgradeType
     MoveSpeed,
     BlockDamageMitigation,
     BlockKnockbackMitigation,
-    BlockAngle
+    BlockAngle,
+    KnockbackThreshold
 }
 
 [CreateAssetMenu(

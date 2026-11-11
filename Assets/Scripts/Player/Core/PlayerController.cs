@@ -3,9 +3,10 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour, IDamageable
 {
+    #region REFERENCES
     // CONTROLLERS
     private DamageController damageController;
-    private MeleeCombatController meleeCombat;
+    private PlayerCombatController meleeCombat;
     private CharacterController characterController;
     private CameraController cameraController;
     private PlayerActionController actions;
@@ -54,10 +55,19 @@ public class PlayerController : MonoBehaviour, IDamageable
         locomotion != null &&
         locomotion.IsGrounded;
 
+    public bool IsComboWindowOpen =>
+        actions?.GetCurrentAction<MeleeAttackAction>()?.IsComboWindowOpen ??
+        false;
+
+    public bool IsComboInputBuffered =>
+        actions?.GetCurrentAction<MeleeAttackAction>()?.ComboInputBuffered ??
+        false;
+
     // DEBUG GIZMOS AND STUFF
     [Header("Block Debug")]
     [SerializeField, Min(0.1f)]
     private float blockDebugRadius = 3f;
+    #endregion
 
 
     #region LIFECYCLE
@@ -96,7 +106,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             myStats,
             locomotion);
 
-        meleeCombat = new MeleeCombatController(
+        meleeCombat = new PlayerCombatController(
             meleeHitbox,
             transform
             );
@@ -124,6 +134,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         actions = new PlayerActionController(actionContext);
 
+        damageController.KnockbackActionCancelRequested += 
+            CancelAttackOnKnockback;
         targetLock.TargetUnlocked += 
             cameraController.ClearLockTarget;
         input.targetLockEvent += OnTargetLock;
@@ -465,21 +477,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         HandleMeleeInputStarted(attackType);
     }
-
-    private bool TryCancelMeleeAttackBeforeHitbox()
-    {
-        MeleeAttackAction meleeAttack =
-            actions.GetCurrentAction<MeleeAttackAction>();
-
-        if (meleeAttack == null ||
-            !meleeAttack.TryCancelBeforeHitbox())
-        {
-            return false;
-        }
-
-        return actions.EndAction();
-    }
     #endregion
+
 
     #region DODGE AND BLOCK
     private void TryStartDodge()
@@ -513,6 +512,30 @@ public class PlayerController : MonoBehaviour, IDamageable
             new BlockAction(actionContext));
     }
     #endregion
+
+
+    #region ATTACK CANCELLATION
+    private bool TryCancelMeleeAttackBeforeHitbox()
+    {
+        MeleeAttackAction meleeAttack =
+            actions.GetCurrentAction<MeleeAttackAction>();
+
+        if (meleeAttack == null ||
+            !meleeAttack.TryCancelBeforeHitbox())
+        {
+            return false;
+        }
+
+        return actions.EndAction();
+    }
+
+    private void CancelAttackOnKnockback()
+    {
+        if (actions?.GetCurrentAction<MeleeAttackAction>() != null)
+            actions.EndAction();
+    }
+    #endregion
+
 
     private void OnActionEnded(PlayerAction endedAction)
     {

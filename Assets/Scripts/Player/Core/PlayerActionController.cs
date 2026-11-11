@@ -1,68 +1,23 @@
 using System;
 
-public class PlayerActionController
+public class PlayerActionController : EntityActionController<PlayerAction>
 {
-    private readonly PlayerActionContext context;
-
-    private PlayerAction currentAction;
-
-    public PlayerAction CurrentAction => currentAction;
-    public bool IsBusy => currentAction != null;
-
     public event Action<PlayerActionType> ActionStarted;
     public event Action<PlayerAction> ActionEnded;
 
     public PlayerActionController(PlayerActionContext context)
     {
-        this.context = context;
+        // The context is retained in the constructor for compatibility with
+        // existing setup. Individual PlayerAction instances receive it.
     }
 
-    public bool TryStartAction(PlayerAction action)
+    protected override void OnActionStarted(PlayerAction action)
     {
-        if (action == null)
-            return false;
-
-        if (IsBusy)
-            return false;
-
-        currentAction = action;
-
-        currentAction.OnStarted();
-        ActionStarted?.Invoke(currentAction.ActionType);
-
-        return true;
+        ActionStarted?.Invoke(action.ActionType);
     }
 
-    public void Update()
+    protected override void OnActionEnded(PlayerAction action)
     {
-        if (!IsBusy)
-            return;
-
-        currentAction.OnUpdate();
-
-        if (currentAction.IsComplete)
-            EndAction();
+        ActionEnded?.Invoke(action);
     }
-
-    public bool EndAction()
-    {
-        if (!IsBusy)
-            return false;
-
-        PlayerAction endedAction = currentAction;
-
-        endedAction.OnEnded();
-
-        currentAction = null;
-
-        ActionEnded?.Invoke(endedAction);
-
-        return true;
-    }
-
-    public T GetCurrentAction<T>()
-    where T : PlayerAction
-        {
-            return currentAction as T;
-        }
 }
