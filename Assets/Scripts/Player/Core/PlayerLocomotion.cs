@@ -74,7 +74,10 @@ public class PlayerLocomotion : IPhysicsMove
     // STATES
     private LocomotionState currentState;
     public LocomotionState CurrentState => currentState;
-    public bool IsGrounded => characterController.isGrounded;
+    public bool IsGrounded =>
+        currentState == LocomotionState.Grounded;
+    public bool IsTouchingGround =>
+        characterController.isGrounded;
     public bool IsFalling => currentState == LocomotionState.Airborne && velocity.y <= 0f;
     public bool IsJumping => velocity.y > 0f;
     public float VerticalVelocity
@@ -85,6 +88,8 @@ public class PlayerLocomotion : IPhysicsMove
 
     // EVENTS
     public event Action Landed;
+    public event Action EnteredGrounded;
+    public event Action ClimbingStarted;
 
     // CONSTRUCTOR
     public PlayerLocomotion(
@@ -106,7 +111,6 @@ public class PlayerLocomotion : IPhysicsMove
             ? LocomotionState.Grounded
             : LocomotionState.Airborne;
 
-        input.jumpEventPressed += OnJumpPressed;
         this.entityStats = entityStats;
     }
 
@@ -149,31 +153,27 @@ public class PlayerLocomotion : IPhysicsMove
     {
         LocomotionState previousState = currentState;
 
-        currentState = characterController.isGrounded
-            ? LocomotionState.Grounded
-            : LocomotionState.Airborne;
+        currentState = climbing
+            ? LocomotionState.Climbing
+            : characterController.isGrounded
+                ? LocomotionState.Grounded
+                : LocomotionState.Airborne;
 
-        if(previousState == LocomotionState.Airborne &&
+        if (previousState != LocomotionState.Grounded &&
             currentState == LocomotionState.Grounded)
         {
             hasUsedFirstAirborneAttackMovement = false;
+            EnteredGrounded?.Invoke();
+        }
+
+        if (previousState == LocomotionState.Airborne &&
+            currentState == LocomotionState.Grounded)
+        {
             Landed?.Invoke();
         }
     }
     #endregion
 
-    #region EVENT LOGIC
-    public void Dispose()
-    {
-        if(input != null)
-            input.jumpEventPressed -= OnJumpPressed;
-    }
-
-    private void OnJumpPressed()
-    {
-        jumpRequested = true;
-    }
-    #endregion
 
     #region ROTATION
     public void SetRotationLocked(bool locked)
@@ -454,6 +454,53 @@ public class PlayerLocomotion : IPhysicsMove
         );
     }
 
+    public bool RequestJump()
+    {
+        if (climbing || !characterController.isGrounded)
+            return false;
+
+        jumpRequested = true;
+        return true;
+    }
+
+    public bool RequestClimbJump(
+        Vector3 awayDirection,
+        float heightMultiplier,
+        float awayForce)
+    {
+        awayDirection.y = 0f;
+
+        if(awayDirection.sqrMagnitude <= 0.001f)
+        {
+            awayDirection = -playerTransform.forward;
+            awayDirection.y = 0f;
+        }
+
+        if (awayDirection.sqrMagnitude <= 0.001f)
+            return false;
+
+        awayDirection.Normalize();
+
+        jumpRequested = false;
+
+        float climbJumpHeight =
+            entityStats.JumpHeight * Mathf.Max(0f, heightMultiplier);
+
+        velocity.y = Mathf.Sqrt(
+            climbJumpHeight * -2f * Gravity);
+
+        float desiredAwayDistance =
+            Mathf.Max(0f, awayForce);
+
+        float awayVelocity = Mathf.Sqrt(
+            2f * PhysicsForceDeceleration * desiredAwayDistance);
+
+        physicsForceVelocity +=
+            awayDirection * awayVelocity;
+
+        return true;
+    }
+
     public void StartAirborneAttack(
         float gravityMultiplier)
     {
@@ -513,10 +560,17 @@ public class PlayerLocomotion : IPhysicsMove
 
     public void SetClimbing(bool value)
     {
+        if (climbing == value)
+            return;
+
         climbing = value;
 
         if(climbing)
+        {
             velocity.y = 0f;
+            currentState = LocomotionState.Climbing;
+            ClimbingStarted?.Invoke();
+        }
     }
 
     public void SetClimbMovement(Vector3 movement)

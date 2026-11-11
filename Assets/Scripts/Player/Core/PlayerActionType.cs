@@ -2,9 +2,10 @@
 public enum PlayerActionType
 {
     None,
+    Jump,
     MeleeAttack,
     Climb,
     Dodge,
     Block
-    // Vault? Jump? Dozens of other Actions?
+    // Vault? Dozens of other Actions?
 }

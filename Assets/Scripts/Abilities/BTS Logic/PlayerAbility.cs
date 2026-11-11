@@ -37,6 +37,10 @@ public abstract class PlayerAbility
 
     }
 
+    public virtual void OnClimbing()
+    {
+    }
+
     // ============================================================
     // ACTIVATION
     // ============================================================

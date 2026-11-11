@@ -212,6 +212,15 @@ public class PlayerAbilityController
             }
         }
     }
+
+    public void NotifyClimbing()
+    {
+        for (int i = 0; i < equippedAbilities.Length; i++)
+        {
+            if (equippedAbilities[i] != null)
+                equippedAbilities[i].OnClimbing();
+        }
+    }
 }
 
 
