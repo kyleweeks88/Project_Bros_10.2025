@@ -27,6 +27,10 @@ public class RangedAttackExecution
             ? 1f
             : Mathf.Clamp01(timer / attackData.StartupTime);
 
+    public bool CanCancelBeforeLaunch =>
+        phase == Phase.Startup &&
+        timer < attackData.StartupTime;
+
     public RangedAttackExecution(
         RangedAttackData attackData,
         DamageController damageController,

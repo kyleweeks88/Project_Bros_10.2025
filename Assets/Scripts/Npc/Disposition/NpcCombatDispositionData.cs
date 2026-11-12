@@ -33,6 +33,19 @@ public abstract class NpcCombatDispositionData : ScriptableObject
     [SerializeField, Min(0f)]
     private float meleeEngagementDistance = 2f;
 
+    [Header("Blocking")]
+    [SerializeField]
+    private bool blockingEnabled;
+
+    [SerializeField, Min(1)]
+    private int hitsToTriggerBlock = 3;
+
+    [SerializeField, Min(0.1f)]
+    private float blockHitCountWindow = 1f;
+
+    [SerializeField, Min(0f)]
+    private float blockPressureWindow = 1.5f;
+
     [Header("Ranged")]
     [SerializeField, Min(0f)]
     private float preferredRangedDistance = 8f;
@@ -53,6 +66,10 @@ public abstract class NpcCombatDispositionData : ScriptableObject
     public float MeleeSlotSearchRetryInterval =>
         meleeSlotSearchRetryInterval;
     public float MeleeEngagementDistance => meleeEngagementDistance;
+    public bool BlockingEnabled => blockingEnabled;
+    public int HitsToTriggerBlock => hitsToTriggerBlock;
+    public float BlockHitCountWindow => blockHitCountWindow;
+    public float BlockPressureWindow => blockPressureWindow;
     public float PreferredRangedDistance => preferredRangedDistance;
     public float RangedDistanceTolerance => rangedDistanceTolerance;
 

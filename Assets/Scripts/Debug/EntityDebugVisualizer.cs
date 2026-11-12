@@ -9,6 +9,9 @@ public class EntityDebugVisualizer : MonoBehaviour
 
     [Header("Display Toggles")]
     [SerializeField]
+    private bool showNpcBlocking = true;
+
+    [SerializeField]
     private bool showKnockbackThreshold = true;
 
     [SerializeField]
@@ -43,6 +46,7 @@ public class EntityDebugVisualizer : MonoBehaviour
     private Text thresholdLabel;
     private Text comboLabel;
     private Text npcAttackLabel;
+    private Text npcBlockLabel;
     private RectTransform attackWindupBar;
     private RawImage attackWindupFill;
 
@@ -83,6 +87,7 @@ public class EntityDebugVisualizer : MonoBehaviour
         UpdateKnockbackDisplay();
         UpdateComboDisplay();
         UpdateNpcAttackWindupDisplay();
+        UpdateNpcBlockDisplay();
 
         if (isPlayerScreenDisplay && playerScreenPanel != null)
         {
@@ -211,51 +216,15 @@ public class EntityDebugVisualizer : MonoBehaviour
             progress);
     }
 
-    private void CreateDisplay()
+    private void UpdateNpcBlockDisplay()
     {
-        GameObject canvasObject = new GameObject(
-            "Entity Debug Visuals",
-            typeof(RectTransform),
-            typeof(Canvas));
-
-        displayRect = canvasObject.GetComponent<RectTransform>();
-        displayCanvas = canvasObject.GetComponent<Canvas>();
-
-        if (isPlayerScreenDisplay)
-        {
-            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            displayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            displayRect.anchorMin = Vector2.zero;
-            displayRect.anchorMax = Vector2.one;
-            displayRect.offsetMin = Vector2.zero;
-            displayRect.offsetMax = Vector2.zero;
-            displayRect.localScale = Vector3.one;
-
-            CreatePlayerScreenPanel();
-            CreateComboLabel();
-            CreateKnockbackBar();
+        if (npcController == null || npcBlockLabel == null)
             return;
-        }
 
-        canvasObject.transform.SetParent(transform, false);
-        displayRect.localPosition = Vector3.up * heightOffset;
-        displayRect.localRotation = Quaternion.identity;
-        displayRect.localScale = Vector3.one * worldScale;
-        displayRect.sizeDelta = new Vector2(displayWidth, 64f);
+        bool shouldShow =
+            showNpcBlocking && npcController.IsBlocking;
 
-        displayCanvas.renderMode = RenderMode.WorldSpace;
-        displayCanvas.worldCamera = Camera.main;
-        displayCanvas.overrideSorting = true;
-        displayCanvas.sortingOrder = 100;
-
-        CreateComboLabel();
-        CreateNpcAttackWindupDisplay();
-        CreateKnockbackBar();
+        npcBlockLabel.gameObject.SetActive(shouldShow);
     }
 
     private void CreatePlayerScreenPanel()
@@ -396,6 +365,36 @@ public class EntityDebugVisualizer : MonoBehaviour
         fillRect.anchoredPosition = new Vector2(2f, 0f);
     }
 
+    private void CreateNpcBlockDisplay()
+    {
+        GameObject labelObject = new GameObject(
+            "NPC Block Label",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Text));
+
+        labelObject.transform.SetParent(displayRect, false);
+
+        npcBlockLabel = labelObject.GetComponent<Text>();
+        npcBlockLabel.font =
+            Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        npcBlockLabel.fontSize = 16;
+        npcBlockLabel.alignment = TextAnchor.MiddleCenter;
+        npcBlockLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+        npcBlockLabel.verticalOverflow = VerticalWrapMode.Overflow;
+        npcBlockLabel.color = new Color(0.2f, 0.6f, 1f);
+        npcBlockLabel.raycastTarget = false;
+        npcBlockLabel.text = "BLOCKING";
+        npcBlockLabel.gameObject.SetActive(false);
+
+        RectTransform labelRect = npcBlockLabel.rectTransform;
+        labelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        labelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        labelRect.pivot = new Vector2(0.5f, 0.5f);
+        labelRect.sizeDelta = new Vector2(displayWidth, 18f);
+        labelRect.anchoredPosition = new Vector2(0f, 22f);
+    }
+
     private void CreateKnockbackBar()
     {
         Transform barParent = isPlayerScreenDisplay
@@ -499,5 +498,56 @@ public class EntityDebugVisualizer : MonoBehaviour
         labelRect.anchoredPosition = anchoredPosition;
 
         return label;
+    }
+
+    private void CreateDisplay()
+    {
+        GameObject canvasObject = new GameObject(
+            "Entity Debug Visuals",
+            typeof(RectTransform),
+            typeof(Canvas));
+
+        displayRect = canvasObject.GetComponent<RectTransform>();
+        displayCanvas = canvasObject.GetComponent<Canvas>();
+
+        if (isPlayerScreenDisplay)
+        {
+            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            displayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            displayRect.anchorMin = Vector2.zero;
+            displayRect.anchorMax = Vector2.one;
+            displayRect.offsetMin = Vector2.zero;
+            displayRect.offsetMax = Vector2.zero;
+            displayRect.localScale = Vector3.one;
+
+            CreatePlayerScreenPanel();
+            CreateComboLabel();
+            CreateKnockbackBar();
+            return;
+        }
+
+        canvasObject.transform.SetParent(transform, false);
+        displayRect.localPosition = Vector3.up * heightOffset;
+        displayRect.localRotation = Quaternion.identity;
+        displayRect.localScale = Vector3.one * worldScale;
+        displayRect.sizeDelta = new Vector2(displayWidth, 64f);
+
+        displayCanvas.renderMode = RenderMode.WorldSpace;
+        displayCanvas.worldCamera = Camera.main;
+        displayCanvas.overrideSorting = true;
+        displayCanvas.sortingOrder = 100;
+
+        CreateComboLabel();
+        CreateNpcAttackWindupDisplay();
+
+        if (npcController != null)
+            CreateNpcBlockDisplay();
+
+        CreateKnockbackBar();
     }
 }

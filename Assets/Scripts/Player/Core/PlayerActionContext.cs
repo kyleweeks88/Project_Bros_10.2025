@@ -5,7 +5,7 @@ public class PlayerActionContext
     public Transform Transform { get; }
     public PlayerInputHandler Input { get; }
     public PlayerLocomotion Locomotion { get; }
-    public PlayerCombatController MeleeCombat { get; }
+    public PlayerMeleeController MeleeCombat { get; }
     public DamageController DamageController { get; }
     public EntityStats Stats { get; }
 
@@ -13,7 +13,7 @@ public class PlayerActionContext
         Transform transform,
         PlayerInputHandler input,
         PlayerLocomotion locomotion,
-        PlayerCombatController meleeCombat,
+        PlayerMeleeController meleeCombat,
         DamageController damageController,
         EntityStats stats)
     {

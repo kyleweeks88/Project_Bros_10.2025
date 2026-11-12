@@ -12,11 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e65094efc2c32741aa8205bea84f5f0, type: 3}
   m_Name: DefaultNpcCombatDisposition
   m_EditorClassIdentifier: Assembly-CSharp::DefaultNpcCombatDispositionData
+  attackApproachPadding: 4
+  zigZagLateralDistance: 1.25
+  zigZagWaypointSpacing: 3
   meleeApproachPreference: 0
   preferredMeleeApproachChance: 100
   meleeSlotSearchRetreatDistance: 3
   meleeSlotSearchDuration: 2
   meleeSlotSearchRetryInterval: 0.3
   meleeEngagementDistance: 1.5
+  blockingEnabled: 1
+  hitsToTriggerBlock: 3
+  blockHitCountWindow: 2
+  blockPressureWindow: 1.5
   preferredRangedDistance: 6
   rangedDistanceTolerance: 0.5

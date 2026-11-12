@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeleeAttackData
   attackName: Uppercut
   attackType: 0
-  startupTime: 0.4
+  startupTime: 0.3
   activeTime: 0.3
   recoveryTime: 0.15
   movementDuration: 0

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class NpcCombatController : IMeleeCombat
+public class NpcMeleeController : IMeleeCombat
 {
     private readonly MeleeStyleData meleeStyle;
     private readonly GameObject meleeHitbox;
@@ -9,7 +9,7 @@ public class NpcCombatController : IMeleeCombat
 
     public MeleeStyleData MeleeStyle => meleeStyle;
 
-    public NpcCombatController(
+    public NpcMeleeController(
         MeleeStyleData meleeStyle,
         GameObject meleeHitbox,
         Transform attackerTransform)
@@ -26,7 +26,7 @@ public class NpcCombatController : IMeleeCombat
         else
         {
             Debug.LogWarning(
-                "NpcCombatController has no melee hitbox assigned.");
+                "NpcMeleeController has no melee hitbox assigned.");
         }
     }
 

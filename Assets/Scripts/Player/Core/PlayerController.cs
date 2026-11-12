@@ -6,7 +6,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     #region REFERENCES
     // CONTROLLERS
     private DamageController damageController;
-    private PlayerCombatController meleeCombat;
+    private PlayerMeleeController meleeCombat;
     private CharacterController characterController;
     private CameraController cameraController;
     private PlayerActionController actions;
@@ -106,7 +106,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             myStats,
             locomotion);
 
-        meleeCombat = new PlayerCombatController(
+        meleeCombat = new PlayerMeleeController(
             meleeHitbox,
             transform
             );

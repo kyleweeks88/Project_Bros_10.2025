@@ -21,6 +21,10 @@ MonoBehaviour:
   meleeSlotSearchDuration: 2
   meleeSlotSearchRetryInterval: 0.3
   meleeEngagementDistance: 2
+  blockingEnabled: 1
+  hitsToTriggerBlock: 3
+  blockHitCountWindow: 1
+  blockPressureWindow: 1.5
   preferredRangedDistance: 8
   rangedDistanceTolerance: 0.5
   meleeChoiceChance: 40

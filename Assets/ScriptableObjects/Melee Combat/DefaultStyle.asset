@@ -15,6 +15,7 @@ MonoBehaviour:
   styleName: Default Style
   lightAttack1Chain:
   - {fileID: 11400000, guid: f32d52c167cfbc04aa8b122fc1cb4d21, type: 2}
+  - {fileID: 11400000, guid: f32d52c167cfbc04aa8b122fc1cb4d21, type: 2}
   - {fileID: 11400000, guid: 547e804352159da47bc82263292cfb84, type: 2}
   - {fileID: 11400000, guid: 2d10597d5bec15b43ac3b77fb3afe321, type: 2}
   lightAttack2Chain:

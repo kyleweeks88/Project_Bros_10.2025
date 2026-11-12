@@ -18,6 +18,10 @@ public class NpcRangedAttackAction : NpcAction
     public float StartupProgress =>
         execution != null ? execution.StartupProgress : 0f;
 
+    public bool CanCancelBeforeLaunch =>
+        execution != null &&
+        execution.CanCancelBeforeLaunch;
+
     public NpcRangedAttackAction(
         NpcActionContext context,
         RangedAttackData attackData,

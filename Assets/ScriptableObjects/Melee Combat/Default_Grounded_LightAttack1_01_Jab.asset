@@ -28,5 +28,5 @@ MonoBehaviour:
   minimumPower: 1
   maximumPower: 1
   targetVerticalKnockbackDirection: 0
-  horizontalKnockbackForce: 20.1
+  horizontalKnockbackForce: 5
   verticalKnockbackForce: 0

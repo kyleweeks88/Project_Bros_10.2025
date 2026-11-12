@@ -8,7 +8,7 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(NavMeshAgent))]
 public class NpcController : MonoBehaviour, ITargetable, IDamageable
 {
-    #region REFERENCES
+    #region PROPERTIES
     [Header("Awareness")]
     [SerializeField, Min(0f)]
     private float awarenessDistance = 10f;
@@ -116,6 +116,13 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     [SerializeField] private GameObject meleeHitbox;
 
 
+    // BLOCKING
+    public bool IsBlocking =>
+        actions != null &&
+        actions.CurrentAction?.ActionType == NpcActionType.Block &&
+        locomotion != null &&
+        locomotion.IsGrounded;
+
     // COMPONENTS
     public Transform TargetTransform => this.transform;
 
@@ -133,11 +140,11 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
     private NPCLocomotion locomotion;
     private CharacterController characterController;
     private NavMeshAgent navMeshAgent;
-    private NpcCombatController combatController;
+    private NpcMeleeController meleeController;
     private NpcActionController actions;
     private NpcCombatDisposition combatDisposition;
 
-    public NpcCombatController CombatController => combatController;
+    public NpcMeleeController MeleeController => meleeController;
     public NpcCombatDisposition CombatDisposition => combatDisposition;
     public NPCLocomotion Locomotion => locomotion;
     public NpcActionController Actions => actions;
@@ -165,7 +172,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
 
         if(meleeStyle != null && meleeHitbox != null)
         {
-            combatController = new NpcCombatController(
+            meleeController = new NpcMeleeController(
             meleeStyle,
             meleeHitbox,
             transform);
@@ -174,7 +181,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         NpcActionContext actionContext = new NpcActionContext(
             transform,
             locomotion,
-            combatController,
+            meleeController,
             damageController,
             stats);
 
@@ -249,7 +256,7 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         if (!IsHostileTarget(attacker))
             return;
 
-        if (combatController != null &&
+        if (meleeController != null &&
             currentTargetMember != null &&
             IsHostileTarget(currentTargetMember))
         {
@@ -521,7 +528,10 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
 
     public void ReceiveDamage(DamageInfo damageInfo)
     {
-        damageController.ReceiveDamage(damageInfo);
+        damageController.ReceiveDamage(
+            damageInfo,
+            transform,
+            IsBlocking);
 
         if (stats != null && stats.IsDead)
             return;
@@ -529,8 +539,11 @@ public class NpcController : MonoBehaviour, ITargetable, IDamageable
         currentTemperamentBehavior?.OnAttacked(
             damageInfo.SourceTransform);
 
-        if (temperament == NpcTemperamentType.Hostile)
+        if(temperament == NpcTemperamentType.Hostile)
+        {
             RetargetToAttacker(damageInfo.SourceTransform);
+            combatDisposition?.OnAttacked(damageInfo.SourceTransform);
+        }
     }
 
     public void BecomeHostileToAttacker(Transform sourceTransform)

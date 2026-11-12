@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class PlayerCombatController : IMeleeCombat
+public class PlayerMeleeController : IMeleeCombat
 {
     private readonly GameObject meleeHitbox;
     private readonly MeleeHitbox hitbox;
@@ -46,7 +46,7 @@ public class PlayerCombatController : IMeleeCombat
         }
     }
 
-    public PlayerCombatController(
+    public PlayerMeleeController(
         GameObject meleeHitbox,
         Transform attackTransform)
     {

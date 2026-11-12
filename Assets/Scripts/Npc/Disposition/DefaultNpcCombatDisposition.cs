@@ -2,13 +2,18 @@ using UnityEngine;
 
 public class DefaultNpcCombatDisposition : NpcCombatDisposition
 {
-    public DefaultNpcCombatDisposition(NpcController npc)
-        : base(npc)
+    public DefaultNpcCombatDisposition(
+        NpcController npc,
+        NpcCombatDispositionData dispositionData = null)
+        : base(npc, dispositionData)
     {
     }
 
     public override void OnUpdate()
     {
+        if (UpdateReactiveBlock())
+            return;
+
         if (npc.Temperament != NpcTemperamentType.Hostile ||
             npc.Awareness != NpcAwareness.Aware)
         {

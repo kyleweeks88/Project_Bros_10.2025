@@ -24,21 +24,26 @@ public class TacticalNpcCombatDisposition : NpcCombatDisposition
     public TacticalNpcCombatDisposition(
         NpcController npc,
         TacticalNpcCombatDispositionData settings)
-        : base(npc)
+        : base(npc, settings)
     {
         this.settings = settings;
         stats = npc.GetComponent<EntityStats>();
     }
 
+    #region LIFECYCLE
     public override void OnEnter()
     {
         base.OnEnter();
+
         phase = Phase.OpeningRangedAttack;
         chosenStyle = AttackStyle.Ranged;
     }
 
     public override void OnUpdate()
     {
+        if (UpdateReactiveBlock())
+            return;
+
         if (npc.Temperament != NpcTemperamentType.Hostile ||
             npc.Awareness != NpcAwareness.Aware)
         {
@@ -111,6 +116,8 @@ public class TacticalNpcCombatDisposition : NpcCombatDisposition
         UpdateRangedCombat(target);
     }
 
+    #endregion
+
     private void ChooseAttackStyle()
     {
         float meleeChance = settings != null
@@ -144,4 +151,5 @@ public class TacticalNpcCombatDisposition : NpcCombatDisposition
 
         return remainingHealthFraction <= remainingHealthThreshold;
     }
+
 }

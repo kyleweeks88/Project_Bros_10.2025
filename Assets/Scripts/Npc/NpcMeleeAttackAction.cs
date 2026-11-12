@@ -15,6 +15,11 @@ public class NpcMeleeAttackAction : NpcAction
     public float StartupProgress =>
         execution != null ? execution.StartupProgress : 0f;
 
+    public bool CanCancelBeforeHitbox =>
+    execution != null &&
+    execution.CanCancelBeforeHitbox;
+
+
     public NpcMeleeAttackAction(
         NpcActionContext context,
         MeleeAttackData attackData)
@@ -59,7 +64,7 @@ public class NpcMeleeAttackAction : NpcAction
         execution?.End();
         Context.Locomotion.CancelAttackMovement();
     }
-
+    
     private void ApplyAttackMovement()
     {
         if (attackData.MovementDuration <= 0f)

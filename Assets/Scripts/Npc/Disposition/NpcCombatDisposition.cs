@@ -5,6 +5,12 @@ public abstract class NpcCombatDisposition
 {
     protected readonly NpcController npc;
     protected readonly NpcMeleeApproachPlanner meleeApproachPlanner;
+    private readonly NpcCombatDispositionData dispositionData;
+
+    private float blockPressureTimer;
+    private int blockHitCount;
+    private float blockHitCountTimer;
+    private Transform blockingAttacker;
 
     private const float ApproachWaypointSampleRadius = 2f;
     private const float ApproachWaypointTargetReevaluationDistance = 1.5f;
@@ -34,15 +40,168 @@ public abstract class NpcCombatDisposition
     private int nextSearchCandidate;
     private Transform trackedTarget;
 
-    protected NpcCombatDisposition(NpcController npc)
+    protected NpcCombatDisposition(
+        NpcController npc,
+        NpcCombatDispositionData dispositionData = null)
     {
         this.npc = npc;
+        this.dispositionData = dispositionData;
         meleeApproachPlanner = new NpcMeleeApproachPlanner(npc);
     }
 
-    public virtual void OnEnter() { }
+    public virtual void OnEnter()
+    {
+        ResetBlockingState();
+    }
 
     public abstract void OnUpdate();
+
+    public virtual void OnExit()
+    {
+        ClearReactiveBlock();
+        ResetCombatState();
+    }
+
+    public virtual void OnAttacked(Transform attacker)
+    {
+        if (dispositionData == null || !dispositionData.BlockingEnabled)
+            return;
+
+        if (attacker != null)
+            blockingAttacker = attacker;
+
+        // Hits received while already blocking keep the NPC under pressure
+        // and extend the current block.
+        if (blockPressureTimer > 0f)
+        {
+            blockPressureTimer = Mathf.Max(
+                0f,
+                dispositionData.BlockPressureWindow);
+            return;
+        }
+
+        if (blockHitCountTimer <= 0f)
+            blockHitCount = 0;
+
+        blockHitCount++;
+        blockHitCountTimer = Mathf.Max(
+            0.1f,
+            dispositionData.BlockHitCountWindow);
+
+        if (blockHitCount < Mathf.Max(1, dispositionData.HitsToTriggerBlock))
+            return;
+
+        blockHitCount = 0;
+        blockHitCountTimer = 0f;
+        blockPressureTimer = Mathf.Max(
+            0f,
+            dispositionData.BlockPressureWindow);
+    }
+
+    protected bool UpdateReactiveBlock()
+    {
+        if (dispositionData == null ||
+            !dispositionData.BlockingEnabled ||
+            npc.Temperament != NpcTemperamentType.Hostile ||
+            npc.Awareness != NpcAwareness.Aware)
+        {
+            ClearReactiveBlock();
+            return false;
+        }
+
+        if (blockPressureTimer <= 0f || npc.Actions == null)
+        {
+            UpdateBlockHitCountTimer();
+            return false;
+        }
+
+        NpcAction currentAction = npc.Actions.CurrentAction;
+
+        if (currentAction is NpcMeleeAttackAction meleeAttack)
+        {
+            if (!meleeAttack.CanCancelBeforeHitbox)
+                return true;
+
+            npc.Actions.EndAction();
+        }
+        else if (currentAction is NpcRangedAttackAction rangedAttack)
+        {
+            if (!rangedAttack.CanCancelBeforeLaunch)
+                return true;
+
+            npc.Actions.EndAction();
+        }
+        else if (currentAction != null &&
+                 currentAction.ActionType != NpcActionType.Block)
+        {
+            // Let other active actions finish before raising the block.
+            return true;
+        }
+
+        // Blocking is only effective while grounded. Keep the pressure
+        // window pending until the NPC can block.
+        if (!npc.Locomotion.IsGrounded)
+            return true;
+
+        Transform threat = blockingAttacker != null
+            ? blockingAttacker
+            : npc.CurrentTarget;
+
+        if (threat != null)
+            npc.Locomotion.FaceTarget(threat.position);
+
+        if (npc.Actions.CurrentAction == null)
+        {
+            npc.Actions.TryStartAction(
+                new NpcBlockAction(npc.Actions.Context));
+        }
+
+        // The duration counts down while blocking. New hits refresh it.
+        blockPressureTimer = Mathf.Max(
+            0f,
+            blockPressureTimer - Time.deltaTime);
+
+        if (blockPressureTimer <= 0f)
+        {
+            if (npc.Actions.CurrentAction?.ActionType == NpcActionType.Block)
+                npc.Actions.EndAction();
+
+            blockingAttacker = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    private void UpdateBlockHitCountTimer()
+    {
+        if (blockHitCountTimer <= 0f)
+            return;
+
+        blockHitCountTimer -= Time.deltaTime;
+
+        if (blockHitCountTimer <= 0f)
+        {
+            blockHitCountTimer = 0f;
+            blockHitCount = 0;
+        }
+    }
+
+    private void ClearReactiveBlock()
+    {
+        ResetBlockingState();
+
+        if (npc.Actions?.CurrentAction?.ActionType == NpcActionType.Block)
+            npc.Actions.EndAction();
+    }
+
+    private void ResetBlockingState()
+    {
+        blockPressureTimer = 0f;
+        blockHitCount = 0;
+        blockHitCountTimer = 0f;
+        blockingAttacker = null;
+    }
 
     protected void PrepareForTarget(Transform target)
     {
@@ -64,8 +223,8 @@ public abstract class NpcCombatDisposition
     {
         meleeAttackData = null;
 
-        return npc.CombatController != null &&
-               npc.CombatController.TryGetAttackData(
+        return npc.MeleeController != null &&
+               npc.MeleeController.TryGetAttackData(
                    MeleeAttackType.LightAttack1,
                    out meleeAttackData);
     }
@@ -211,11 +370,6 @@ public abstract class NpcCombatDisposition
     {
         if (newAwareness == NpcAwareness.Unaware)
             ResetCombatState();
-    }
-
-    public virtual void OnExit()
-    {
-        ResetCombatState();
     }
 
     protected bool AdjustRangedDistance(Transform target)
